@@ -225,7 +225,7 @@ const PaymentModal = ({ order, onClose, onPaymentComplete }: PaymentModalProps) 
 
 export default function StudentOrdersPage() {
   const router = useRouter();
-  const { orders, updateOrderStatus } = useOrders();
+  const { orders, updateOrderStatus, refreshOrders } = useOrders();
   const { student, isAuthenticated, isLoading } = useStudentAuth();
   const [myOrders, setMyOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -309,23 +309,37 @@ export default function StudentOrdersPage() {
   }, [isAuthenticated, isLoading, student, router]);
 
   // Refresh orders
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setIsRefreshing(true);
-    setTimeout(() => {
-      // Show all orders for this student
-      const studentOrders = orders.filter(
-        order => order.studentEmail === student?.email || order.studentId === student?.studentId
-      );
-      const sortedOrders = studentOrders.sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      setMyOrders(sortedOrders);
-      if (selectedOrder) {
-        const updated = sortedOrders.find(o => o.id === selectedOrder.id);
-        if (updated) setSelectedOrder(updated);
-      }
+    try {
+      // Force reload from localStorage
+      await refreshOrders();
+      console.log('[StudentOrders] Orders refreshed from storage');
+      
+      // Update myOrders with the latest data
+      setTimeout(() => {
+        const studentOrders = orders.filter(
+          order => order.studentEmail === student?.email || order.studentId === student?.studentId
+        );
+        const sortedOrders = studentOrders.sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        setMyOrders(sortedOrders);
+        
+        // Update selected order if it exists
+        if (selectedOrder) {
+          const updated = sortedOrders.find(o => o.id === selectedOrder.id);
+          if (updated) {
+            setSelectedOrder(updated);
+            console.log('[StudentOrders] Selected order updated after refresh');
+          }
+        }
+        setIsRefreshing(false);
+      }, 100);
+    } catch (error) {
+      console.error('[StudentOrders] Refresh failed:', error);
       setIsRefreshing(false);
-    }, 500);
+    }
   };
 
   // Handle payment completion

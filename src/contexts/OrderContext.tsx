@@ -15,6 +15,7 @@ interface OrderContextType {
   getOrderTotalTime: (orderId: string) => number; // Returns total minutes since creation
   isOrderLate: (orderId: string) => boolean;
   deleteOrder: (orderId: string) => void; // Delete/remove an order
+  refreshOrders: () => Promise<void>; // Force refresh from localStorage
 }
 
 const OrderContext = createContext<OrderContextType | undefined>(undefined);
@@ -190,6 +191,34 @@ export const OrderProvider = ({ children }: { children: React.ReactNode }) => {
     setOrders(prev => prev.filter(order => order.id !== orderId));
   };
 
+  const refreshOrders = async (): Promise<void> => {
+    return new Promise((resolve) => {
+      const savedOrders = localStorage.getItem('orders');
+      if (savedOrders) {
+        try {
+          const parsed = JSON.parse(savedOrders);
+          // Convert date strings back to Date objects
+          const ordersData = parsed.map((order: any) => ({
+            ...order,
+            createdAt: new Date(order.createdAt),
+            updatedAt: new Date(order.updatedAt),
+            scheduledTime: order.scheduledTime ? new Date(order.scheduledTime) : undefined,
+          }));
+          setOrders(ordersData);
+          console.log(`[OrderContext] Refreshed ${ordersData.length} orders from localStorage`);
+          resolve();
+        } catch (error) {
+          console.error('[OrderContext] Failed to refresh orders:', error);
+          resolve();
+        }
+      } else {
+        console.log('[OrderContext] No orders in localStorage to refresh');
+        setOrders([]);
+        resolve();
+      }
+    });
+  };
+
   return (
     <OrderContext.Provider
       value={{
@@ -202,6 +231,7 @@ export const OrderProvider = ({ children }: { children: React.ReactNode }) => {
         getOrderTotalTime,
         isOrderLate,
         deleteOrder,
+        refreshOrders,
       }}
     >
       {children}
