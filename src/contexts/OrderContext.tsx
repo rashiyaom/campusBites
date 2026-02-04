@@ -132,13 +132,6 @@ export const OrderProvider = ({ children }: { children: React.ReactNode }) => {
         return order;
       });
       
-      // Force storage update and sync to other tabs
-      setTimeout(() => {
-        localStorage.setItem('orders', JSON.stringify(updated));
-        triggerSync('orders');
-        console.log('[OrderContext] Forced sync after status update');
-      }, 0);
-      
       return updated;
     });
   };
@@ -150,13 +143,6 @@ export const OrderProvider = ({ children }: { children: React.ReactNode }) => {
           ? { ...order, estimatedTime: `${minutes} mins` }
           : order
       );
-      
-      // Force storage update and sync
-      setTimeout(() => {
-        localStorage.setItem('orders', JSON.stringify(updated));
-        triggerSync('orders');
-        console.log('[OrderContext] Forced sync after estimated time update');
-      }, 0);
       
       return updated;
     });
