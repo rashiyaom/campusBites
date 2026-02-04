@@ -199,7 +199,7 @@ const TiltCard = ({ item, cafeName, onClick }: { item: any; cafeName: string; on
            <h3 className="text-2xl font-black leading-tight mb-2 drop-shadow-lg">{item.name}</h3>
            
            <div className="flex items-center justify-between">
-              <span className="text-xl font-bold text-orange-400 dark:text-orange-300 drop-shadow-lg">₹{(item.price).toFixed(0)}</span>
+              <span className="text-xl font-bold text-orange-400 dark:text-orange-300 drop-shadow-lg">₹{(item.price).toFixed(2)}</span>
               <button className="bg-white dark:bg-gradient-to-r dark:from-orange-500 dark:to-red-500 text-black dark:text-white p-2 rounded-full hover:bg-orange-500 hover:text-white dark:hover:from-orange-600 dark:hover:to-red-600 transition-all shadow-lg hover:scale-110 active:scale-95">
                 <Plus size={20} />
               </button>
@@ -358,7 +358,7 @@ const DetailView = ({ item, onClose, onAddToCart }: { item: any; onClose: () => 
            <div className="flex justify-between items-start mb-6 md:mb-8">
              <div>
                <p className="text-xs md:text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Total Price</p>
-               <div className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white">₹{(item.price * qty).toFixed(0)}</div>
+               <div className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white">₹{(item.price * qty).toFixed(2)}</div>
              </div>
              <div className="flex items-center gap-2 bg-yellow-50 dark:bg-yellow-900/30 px-3 py-1 rounded-xl">
                 <Star className="text-yellow-500 fill-yellow-500" size={20} />
@@ -560,7 +560,7 @@ const CartView = ({ onClose, cart, onUpdateCart }: { onClose: () => void; cart: 
                   />
                   <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-gray-900 dark:text-white truncate">{item.name}</h4>
-                    <div className="text-gray-500 dark:text-gray-400 text-sm">₹{(item.price).toFixed(0)}</div>
+                    <div className="text-gray-500 dark:text-gray-400 text-sm">₹{(item.price).toFixed(2)}</div>
                   </div>
                   
                   {/* Quantity Controls */}
@@ -583,7 +583,7 @@ const CartView = ({ onClose, cart, onUpdateCart }: { onClose: () => void; cart: 
                       </button>
                     </div>
                     <span className="text-xs text-gray-400 dark:text-gray-500 font-bold">
-                      ₹{(item.price * qty).toFixed(0)}
+                      ₹{(item.price * qty).toFixed(2)}
                     </span>
                   </div>
                 </div>

@@ -209,7 +209,7 @@ const MenuManager = () => {
 
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-2xl font-black text-red-600">
-                    ₹{(item.price).toFixed(0)}
+                    ₹{(item.price).toFixed(2)}
                   </span>
                   <span className="px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-xs font-bold text-gray-700 dark:text-gray-300">
                     {item.category}

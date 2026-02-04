@@ -172,7 +172,7 @@ const TiltCard = ({ item, onClick }: { item: any; onClick: (item: any) => void }
            <h3 className="text-2xl font-black leading-tight mb-2 shadow-sm">{item.name}</h3>
            
            <div className="flex items-center justify-between">
-              <span className="text-xl font-bold text-orange-400">₹{(item.price).toFixed(0)}</span>
+              <span className="text-xl font-bold text-orange-400">₹{(item.price).toFixed(2)}</span>
               <button className="bg-white text-black p-2 rounded-full hover:bg-orange-500 hover:text-white transition-colors shadow-lg">
                 <Plus size={20} />
               </button>
@@ -321,7 +321,7 @@ const DetailView = ({ item, onClose }: { item: any; onClose: () => void }) => {
            <div className="flex justify-between items-start mb-6 md:mb-8">
              <div>
                <p className="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-widest mb-1">Total Price</p>
-               <div className="text-3xl md:text-4xl font-black text-gray-900">₹{(item.price * qty).toFixed(0)}</div>
+               <div className="text-3xl md:text-4xl font-black text-gray-900">₹{(item.price * qty).toFixed(2)}</div>
              </div>
              <div className="flex items-center gap-2 bg-yellow-50 px-3 py-1 rounded-xl">
                 <Star className="text-yellow-500 fill-yellow-500" size={20} />
