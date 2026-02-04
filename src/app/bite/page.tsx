@@ -164,7 +164,7 @@ const TiltCard = ({ item, cafeName, onClick }: { item: any; cafeName: string; on
       className="perspective-1000 h-[400px] w-full cursor-pointer group"
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      onClick={() => onClick({ ...item, cafe: cafeName })}
+      onClick={() => onClick({ ...item, cafe: cafeName, cafeteriaId: item.cafeteriaId })}
     >
       <div 
         className="w-full h-full relative preserve-3d transition-all duration-200 ease-out rounded-3xl shadow-xl dark:shadow-2xl dark:shadow-orange-500/10 hover:shadow-2xl dark:hover:shadow-orange-500/20"
@@ -236,7 +236,7 @@ const MobileStreamCard = ({ item, cafeName, onClick }: { item: any; cafeName: st
       setShowHeart(true);
       setTimeout(() => setShowHeart(false), 1000);
     } else {
-      onClick({ ...item, cafe: cafeName });
+      onClick({ ...item, cafe: cafeName, cafeteriaId: item.cafeteriaId });
     }
     lastTap.current = now;
   };

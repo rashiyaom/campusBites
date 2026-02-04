@@ -68,7 +68,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const handleCheckout = () => {
     if (cartItems.length === 0) return;
     onClose();
-    router.push('/checkout');
+    
+    // If all items are from the same cafe, pass that cafe ID
+    const uniqueCafeIds = Array.from(new Set(cartItems.map(item => item.menuItem.cafeteriaId)));
+    if (uniqueCafeIds.length === 1 && uniqueCafeIds[0]) {
+      router.push(`/checkout?cafe=${uniqueCafeIds[0]}`);
+    } else {
+      router.push('/checkout');
+    }
   };
 
   if (!isOpen) return null;

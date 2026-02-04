@@ -66,7 +66,15 @@ export default function MenuExplorerPage() {
   
   const { getCafeteriaById } = useCafeterias();
   const { getMenuItemsByCafeteria } = useMenu();
-  const { cartItems, addToCart: addToGlobalCart, updateQuantity, removeFromCart, getCartTotal, getCartCount } = useCart();
+  const { 
+    // Multi-cafe cart methods
+    addToCafeCart,
+    cafeCarts,
+    getCafeCartTotal,
+    getCafeCartCount,
+    updateCafeCartQuantity,
+    removeFromCafeCart
+  } = useCart();
   
   const [cafe, setCafe] = useState<Cafeteria | undefined>(undefined);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -75,6 +83,12 @@ export default function MenuExplorerPage() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+
+  // Get current cafe's cart items
+  const currentCafeCart = cafeCarts[cafeteriaId];
+  const cartItems = currentCafeCart?.items || [];
+  const getCartTotal = () => getCafeCartTotal(cafeteriaId);
+  const getCartCount = () => getCafeCartCount(cafeteriaId);
 
   // Dark mode setup
   useEffect(() => {
@@ -123,25 +137,27 @@ export default function MenuExplorerPage() {
 
   const handleAddToCart = (itemId: string) => {
     const item = menuItems.find(m => m.id === itemId);
-    if (item) {
-      addToGlobalCart(item, 1);
+    if (item && cafe) {
+      addToCafeCart(cafeteriaId, cafe.name, item, 1);
     }
   };
 
   const handleRemoveFromCart = (itemId: string) => {
-    const cartItem = cartItems.find(ci => ci.menuItem.id === itemId && ci.menuItem.cafeteriaId === cafeteriaId);
+    const cartItem = cartItems.find(ci => ci.menuItem.id === itemId);
     if (cartItem) {
       if (cartItem.quantity > 1) {
-        updateQuantity(cartItem.id, cartItem.quantity - 1);
+        updateCafeCartQuantity(cafeteriaId, cartItem.id, cartItem.quantity - 1);
       } else {
-        removeFromCart(cartItem.id);
+        removeFromCafeCart(cafeteriaId, cartItem.id);
       }
     }
   };
 
   const handleAddToCartFromDetail = (item: MenuItem, qty: number) => {
     // Add the item with the specified quantity
-    addToGlobalCart(item, qty);
+    if (cafe) {
+      addToCafeCart(cafeteriaId, cafe.name, item, qty);
+    }
   };
 
   // Extract unique categories
@@ -368,7 +384,7 @@ export default function MenuExplorerPage() {
                             <button 
                               onClick={(e) => {
                                 e.stopPropagation();
-                                removeFromCart(item.id);
+                                handleRemoveFromCart(item.id);
                               }}
                               className="w-8 h-8 rounded-full bg-gray-700 dark:bg-white/20 flex items-center justify-center hover:bg-gray-600 dark:hover:bg-white/30 transition-colors"
                             >
