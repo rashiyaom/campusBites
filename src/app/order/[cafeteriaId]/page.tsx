@@ -22,7 +22,7 @@ import { useCafeterias } from '@/contexts/CafeteriaContext';
 import { useMenu } from '@/contexts/MenuContext';
 import { useCart } from '@/contexts/CartContext';
 import { Cafeteria, MenuItem } from '@/types';
-import CartDrawer from '@/components/order/CartDrawer';
+import { CartDrawer } from '@/components/student/CartDrawer';
 
 /* --- Custom Animations & Styles --- */
 const CustomStyles = () => (
@@ -59,11 +59,6 @@ const CustomStyles = () => (
   `}</style>
 );
 
-interface CartItem {
-  menuItem: MenuItem;
-  quantity: number;
-}
-
 export default function MenuExplorerPage() {
   const params = useParams();
   const router = useRouter();
@@ -71,7 +66,7 @@ export default function MenuExplorerPage() {
   
   const { getCafeteriaById } = useCafeterias();
   const { getMenuItemsByCafeteria } = useMenu();
-  const { cartItems, addToCart: addToGlobalCart, updateQuantity, removeFromCart } = useCart();
+  const { cartItems, addToCart: addToGlobalCart, updateQuantity, removeFromCart, getCartTotal, getCartCount } = useCart();
   
   const [cafe, setCafe] = useState<Cafeteria | undefined>(undefined);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -80,14 +75,6 @@ export default function MenuExplorerPage() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
-
-  // Create local cart object for CartDrawer compatibility
-  const cart = cartItems
-    .filter(item => item.menuItem.cafeteriaId === cafeteriaId)
-    .reduce((acc, item) => {
-      acc[item.menuItem.id] = item.quantity;
-      return acc;
-    }, {} as { [key: string]: number });
 
   // Dark mode setup
   useEffect(() => {
@@ -152,27 +139,10 @@ export default function MenuExplorerPage() {
     }
   };
 
-  const updateCart = (itemId: string, delta: number) => {
-    if (delta > 0) {
-      handleAddToCart(itemId);
-    } else {
-      handleRemoveFromCart(itemId);
-    }
-  };
-
   const handleAddToCartFromDetail = (item: MenuItem, qty: number) => {
     // Add the item with the specified quantity
     addToGlobalCart(item, qty);
   };
-
-  const getCartTotal = () => {
-    return Object.entries(cart).reduce((total, [id, qty]) => {
-      const item = menuItems.find(i => i.id === id);
-      return total + (item ? item.price * qty  : 0); // Convert to INR (1 USD ≈ 83 INR)
-    }, 0);
-  };
-
-  const getCartCount = () => Object.values(cart).reduce((a, b) => a + b, 0);
 
   // Extract unique categories
   const categories = Array.from(new Set(menuItems.map(item => item.category)));
@@ -326,7 +296,8 @@ export default function MenuExplorerPage() {
           ) : (
             <div className="grid md:grid-cols-2 gap-6">
               {filteredMenu.map((item, index) => {
-                const qty = cart[item.id] || 0;
+                const cartItem = cartItems.find(ci => ci.menuItem.id === item.id && ci.menuItem.cafeteriaId === cafeteriaId);
+                const qty = cartItem?.quantity || 0;
                 return (
                   <div 
                     key={item.id} 
@@ -453,10 +424,6 @@ export default function MenuExplorerPage() {
         <CartDrawer 
           isOpen={isCartOpen}
           onClose={() => setIsCartOpen(false)}
-          cart={cart}
-          menuItems={menuItems}
-          cafe={cafe}
-          updateCart={updateCart}
         />
 
         {/* Item Detail Modal */}
