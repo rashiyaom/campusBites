@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useMenu } from '@/contexts/MenuContext';
 import { useCafeterias } from '@/contexts/CafeteriaContext';
+import { useCart } from '@/contexts/CartContext';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Search, 
@@ -428,7 +430,12 @@ const DetailView = ({ item, onClose, onAddToCart }: { item: any; onClose: () => 
 };
 
 // --- COMPONENT: CART MODAL ---
-const CartView = ({ onClose, cart, onUpdateCart }: { onClose: () => void; cart: { [key: string]: { item: any; qty: number } }; onUpdateCart: (itemId: string, delta: number) => void }) => {
+const CartView = ({ onClose, cart, onUpdateCart, onCheckout }: { 
+  onClose: () => void; 
+  cart: { [key: string]: { item: any; qty: number } }; 
+  onUpdateCart: (itemId: string, delta: number) => void;
+  onCheckout: () => void;
+}) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const cartItems = Object.values(cart);
 
@@ -617,7 +624,10 @@ const CartView = ({ onClose, cart, onUpdateCart }: { onClose: () => void; cart: 
               </div>
             </div>
 
-            <button className="w-full bg-gradient-to-r from-orange-500 to-red-500 dark:from-orange-600 dark:to-red-600 text-white py-4 rounded-2xl font-black text-lg hover:from-orange-600 hover:to-red-600 dark:hover:from-orange-700 dark:hover:to-red-700 active:scale-95 transition-all shadow-xl shadow-orange-500/40 dark:shadow-orange-500/30">
+            <button 
+              onClick={onCheckout}
+              className="w-full bg-gradient-to-r from-orange-500 to-red-500 dark:from-orange-600 dark:to-red-600 text-white py-4 rounded-2xl font-black text-lg hover:from-orange-600 hover:to-red-600 dark:hover:from-orange-700 dark:hover:to-red-700 active:scale-95 transition-all shadow-xl shadow-orange-500/40 dark:shadow-orange-500/30"
+            >
               Proceed to Checkout
             </button>
           </div>
@@ -629,8 +639,10 @@ const CartView = ({ onClose, cart, onUpdateCart }: { onClose: () => void; cart: 
 
 // --- MAIN COMPONENT ---
 const BitePage = () => {
+  const router = useRouter();
   const { menuItems } = useMenu();
   const { cafeterias } = useCafeterias();
+  const { addToCart: addToGlobalCart, clearCart } = useCart();
   const [isDark, setIsDark] = useState(false);
   const [viewMode, setViewMode] = useState('grid');
   const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -684,6 +696,18 @@ const BitePage = () => {
 
   const getCartCount = () => {
     return Object.values(cart).reduce((total, { qty }) => total + qty, 0);
+  };
+
+  const handleProceedToCheckout = () => {
+    // Sync bite cart to global CartContext
+    clearCart(); // Clear any existing items first
+    
+    Object.values(cart).forEach(({ item, qty }) => {
+      addToGlobalCart(item, qty);
+    });
+    
+    // Navigate to checkout
+    router.push('/checkout');
   };
 
   // Dark mode setup
@@ -924,6 +948,7 @@ const BitePage = () => {
            onClose={() => setShowCart(false)} 
            cart={cart}
            onUpdateCart={handleUpdateCart}
+           onCheckout={handleProceedToCheckout}
          />
       )}
 
