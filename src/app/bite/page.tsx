@@ -429,168 +429,136 @@ const DetailView = ({ item, onClose, onAddToCart }: { item: any; onClose: () => 
   );
 };
 
-// --- COMPONENT: CART MODAL ---
-const CartView = ({ onClose, cart, onUpdateCart, onCheckout }: { 
-  onClose: () => void; 
-  cart: { [key: string]: { item: any; qty: number } }; 
-  onUpdateCart: (itemId: string, delta: number) => void;
-  onCheckout: () => void;
-}) => {
+// --- COMPONENT: MULTI-CAFE CART MODAL ---
+const CartView = ({ onClose }: { onClose: () => void }) => {
+  const router = useRouter();
+  const { cafeCarts, removeFromCafeCart, updateCafeCartQuantity, getCafeCartTotal, getCafeCartCount } = useCart();
   const [isLoaded, setIsLoaded] = useState(false);
-  const cartItems = Object.values(cart);
+  const [selectedCafeId, setSelectedCafeId] = useState<string | null>(null);
 
-  // Dummy cafe data for demo
-  const dummyCafe = {
-    name: "Campus Cafeteria",
-    location: "Main Campus",
-    image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=100&h=100&fit=crop"
-  };
+  const cafeIds = Object.keys(cafeCarts);
+  const totalCafes = cafeIds.length;
 
-  // Calculate Totals & Fees (INR)
-  const subtotal = cartItems.reduce((acc, { item, qty }) => acc + (item.price * qty), 0);
-  const fee = 165; // Service Fee (₹165)
-  const freeDeliveryThreshold = 2075; // ₹2075 for free delivery
-  const deliveryFee = subtotal >= freeDeliveryThreshold ? 0 : 207; // ₹207
-  const total = subtotal + fee + deliveryFee;
-
-  // Progress bar for free delivery
-  const progress = Math.min((subtotal / freeDeliveryThreshold) * 100, 100);
-  const remaining = Math.max(freeDeliveryThreshold - subtotal, 0);
+  // Auto-select first cafe if only one
+  useEffect(() => {
+    if (totalCafes === 1 && !selectedCafeId) {
+      setSelectedCafeId(cafeIds[0]);
+    }
+  }, [totalCafes, selectedCafeId, cafeIds]);
 
   useEffect(() => {
     setTimeout(() => setIsLoaded(true), 50);
   }, []);
 
-  return (
-    <div className={`fixed inset-0 z-[100] flex items-end md:items-center justify-center transition-all duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
-      {/* Backdrop */}
-      <div className="absolute inset-0 backdrop-blur-xl bg-black/60 dark:bg-black/80" onClick={onClose} />
-      
-      {/* Cart Container */}
-      <div className={`relative w-full md:max-w-2xl md:max-h-[85vh] h-[92vh] bg-white dark:bg-gray-900 rounded-t-[2.5rem] md:rounded-[3rem] overflow-hidden shadow-2xl dark:shadow-orange-500/20 flex flex-col transition-transform duration-500 ease-out transform border border-gray-200 dark:border-orange-500/30 ${isLoaded ? 'translate-y-0' : 'translate-y-full md:translate-y-20'}`}>
-        
-        {/* Mobile Pull Indicator */}
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full md:hidden z-50"></div>
+  const handleCheckout = (cafeteriaId: string) => {
+    // Navigate to checkout with cafe ID
+    router.push(`/checkout?cafe=${cafeteriaId}`);
+  };
 
-        {/* Header */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-800">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-r from-orange-500 to-red-500 p-3 rounded-xl">
-                <ShoppingBag size={24} className="text-white" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-black text-gray-900 dark:text-white">Your Cart</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{cartItems.length} items</p>
-              </div>
-            </div>
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-              <X size={24} className="text-gray-600 dark:text-gray-400" />
-            </button>
-          </div>
+  const handleUpdateCart = (cafeteriaId: string, itemId: string, delta: number) => {
+    const currentCart = cafeCarts[cafeteriaId];
+    const item = currentCart.items.find(i => i.id === itemId);
+    if (item) {
+      updateCafeCartQuantity(cafeteriaId, itemId, item.quantity + delta);
+    }
+  };
 
-          {cartItems.length > 0 && (
-            <>
-              {/* Gamified Delivery Tracker */}
-              <div className="bg-gray-100 dark:bg-gray-800/80 rounded-xl p-4 relative overflow-hidden mt-4">
-                <div className="flex items-center gap-3 relative z-10">
-                  <div className="bg-white dark:bg-gray-700 p-2 rounded-full shadow-sm text-green-600 dark:text-green-400">
-                    <Bike size={20} />
-                  </div>
-                  <div className="flex-1">
-                    {remaining > 0 ? (
-                      <p className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                        Add <span className="text-green-600 dark:text-green-400">₹{remaining.toFixed(0)}</span> for Free Delivery
-                      </p>
-                    ) : (
-                      <p className="text-sm font-bold text-green-600 dark:text-green-400 flex items-center gap-1">
-                        Free Delivery Unlocked! <CheckCircle size={14}/>
-                      </p>
-                    )}
-                    <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full mt-2 overflow-hidden">
-                      <div 
-                        className="h-full bg-green-500 dark:bg-green-600 transition-all duration-500" 
-                        style={{ width: `${progress}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-                {remaining <= 0 && <div className="absolute inset-0 bg-green-500/10 dark:bg-green-500/20 z-0"></div>}
-              </div>
+  const renderCafeCart = (cafeteriaId: string) => {
+    const cart = cafeCarts[cafeteriaId];
+    if (!cart) return null;
 
-              {/* Cafeteria Info */}
-              <div className="mt-4 flex items-center gap-3 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-100 dark:border-orange-800/30">
-                <img 
-                  src={dummyCafe.image} 
-                  alt={dummyCafe.name} 
-                  className="w-12 h-12 rounded-lg object-cover"
-                />
-                <div className="flex-1">
-                  <p className="font-bold text-gray-900 dark:text-white text-sm">{dummyCafe.name}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{dummyCafe.location}</p>
-                </div>
-              </div>
-            </>
-          )}
+    const subtotal = getCafeCartTotal(cafeteriaId);
+    const fee = 165; // Service Fee (₹165)
+    const freeDeliveryThreshold = 2075; // ₹2075 for free delivery
+    const deliveryFee = subtotal >= freeDeliveryThreshold ? 0 : 207; // ₹207
+    const total = subtotal + fee + deliveryFee;
+    const progress = Math.min((subtotal / freeDeliveryThreshold) * 100, 100);
+    const remaining = Math.max(freeDeliveryThreshold - subtotal, 0);
+
+    return (
+      <div className="flex flex-col h-full">
+        {/* Cafe Header */}
+        <div className="p-4 bg-gradient-to-r from-orange-500 to-red-500 dark:from-orange-600 dark:to-red-600 text-white">
+          <h3 className="text-xl font-black">{cart.cafeteriaName}</h3>
+          <p className="text-sm opacity-90">{cart.items.length} items • ₹{subtotal.toFixed(2)}</p>
         </div>
 
-        {/* Cart Content */}
+        {/* Delivery Progress */}
+        {cart.items.length > 0 && (
+          <div className="bg-gray-100 dark:bg-gray-800/80 p-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-white dark:bg-gray-700 p-2 rounded-full shadow-sm text-green-600 dark:text-green-400">
+                <Bike size={20} />
+              </div>
+              <div className="flex-1">
+                {remaining > 0 ? (
+                  <p className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                    Add <span className="text-green-600 dark:text-green-400">₹{remaining.toFixed(0)}</span> for Free Delivery
+                  </p>
+                ) : (
+                  <p className="text-sm font-bold text-green-600 dark:text-green-400 flex items-center gap-1">
+                    Free Delivery Unlocked! <CheckCircle size={14}/>
+                  </p>
+                )}
+                <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full mt-2 overflow-hidden">
+                  <div 
+                    className="h-full bg-green-500 dark:bg-green-600 transition-all duration-500" 
+                    style={{ width: `${progress}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Cart Items */}
         <div className="flex-1 overflow-y-auto p-6">
-          {cartItems.length === 0 ? (
+          {cart.items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full py-12">
               <div className="bg-gray-100 dark:bg-gray-800 p-8 rounded-full mb-6">
                 <ShoppingBag size={64} className="text-gray-300 dark:text-gray-600" />
               </div>
               <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Cart Empty</h3>
               <p className="text-gray-500 dark:text-gray-400 text-center mb-6 max-w-xs">
-                Looks like you haven't added any delicious items yet!
+                Add items from {cart.cafeteriaName}!
               </p>
-              <button 
-                onClick={onClose}
-                className="bg-gradient-to-r from-orange-500 to-red-500 dark:from-orange-600 dark:to-red-600 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:from-orange-600 hover:to-red-600 dark:hover:from-orange-700 dark:hover:to-red-700 active:scale-95 transition-all shadow-xl shadow-orange-500/40 dark:shadow-orange-500/30 flex items-center gap-2"
-              >
-                <Plus size={20} />
-                Add Items
-              </button>
             </div>
           ) : (
             <div className="space-y-4">
-              {cartItems.map(({ item, qty }) => (
+              {cart.items.map((cartItem) => (
                 <div 
-                  key={item.id} 
+                  key={cartItem.id} 
                   className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex gap-4 items-center group hover:shadow-md transition-shadow"
                 >
                   <img 
-                    src={item.image} 
-                    alt={item.name} 
+                    src={cartItem.menuItem.image} 
+                    alt={cartItem.menuItem.name} 
                     className="w-16 h-16 rounded-xl object-cover flex-shrink-0" 
                   />
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-gray-900 dark:text-white truncate">{item.name}</h4>
-                    <div className="text-gray-500 dark:text-gray-400 text-sm">₹{(item.price).toFixed(2)}</div>
+                    <h4 className="font-bold text-gray-900 dark:text-white truncate">{cartItem.menuItem.name}</h4>
+                    <div className="text-gray-500 dark:text-gray-400 text-sm">₹{(cartItem.menuItem.price).toFixed(2)}</div>
                   </div>
                   
                   {/* Quantity Controls */}
                   <div className="flex flex-col items-end gap-2">
                     <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-900/80 rounded-full px-1 py-1 border border-gray-200 dark:border-gray-700">
                       <button 
-                        onClick={() => onUpdateCart(item.id, -1)}
+                        onClick={() => handleUpdateCart(cafeteriaId, cartItem.id, -1)}
                         className="w-7 h-7 bg-white dark:bg-gray-700 rounded-full shadow-sm flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-90"
-                        aria-label="Decrease quantity"
                       >
                         <Minus size={14} className="text-gray-700 dark:text-gray-300" />
                       </button>
-                      <span className="font-bold text-sm w-3 text-center text-gray-900 dark:text-white">{qty}</span>
+                      <span className="font-bold text-sm w-3 text-center text-gray-900 dark:text-white">{cartItem.quantity}</span>
                       <button 
-                        onClick={() => onUpdateCart(item.id, 1)}
+                        onClick={() => handleUpdateCart(cafeteriaId, cartItem.id, 1)}
                         className="w-7 h-7 bg-gradient-to-r from-orange-500 to-red-500 dark:from-orange-600 dark:to-red-600 text-white rounded-full shadow-sm flex items-center justify-center hover:from-orange-600 hover:to-red-600 transition-colors active:scale-90"
-                        aria-label="Increase quantity"
                       >
                         <Plus size={14} />
                       </button>
                     </div>
                     <span className="text-xs text-gray-400 dark:text-gray-500 font-bold">
-                      ₹{(item.price * qty).toFixed(2)}
+                      ₹{(cartItem.menuItem.price * cartItem.quantity).toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -600,7 +568,7 @@ const CartView = ({ onClose, cart, onUpdateCart, onCheckout }: {
         </div>
 
         {/* Footer - Only show when cart has items */}
-        {cartItems.length > 0 && (
+        {cart.items.length > 0 && (
           <div className="p-6 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
             <div className="space-y-2 mb-4">
               <div className="flex justify-between text-gray-600 dark:text-gray-400 text-sm">
@@ -625,12 +593,86 @@ const CartView = ({ onClose, cart, onUpdateCart, onCheckout }: {
             </div>
 
             <button 
-              onClick={onCheckout}
+              onClick={() => handleCheckout(cafeteriaId)}
               className="w-full bg-gradient-to-r from-orange-500 to-red-500 dark:from-orange-600 dark:to-red-600 text-white py-4 rounded-2xl font-black text-lg hover:from-orange-600 hover:to-red-600 dark:hover:from-orange-700 dark:hover:to-red-700 active:scale-95 transition-all shadow-xl shadow-orange-500/40 dark:shadow-orange-500/30"
             >
               Proceed to Checkout
             </button>
           </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className={`fixed inset-0 z-[100] flex items-end md:items-center justify-center transition-all duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
+      {/* Backdrop */}
+      <div className="absolute inset-0 backdrop-blur-xl bg-black/60 dark:bg-black/80" onClick={onClose} />
+      
+      {/* Cart Container */}
+      <div className={`relative w-full md:max-w-2xl md:max-h-[85vh] h-[92vh] bg-white dark:bg-gray-900 rounded-t-[2.5rem] md:rounded-[3rem] overflow-hidden shadow-2xl dark:shadow-orange-500/20 flex flex-col transition-transform duration-500 ease-out transform border border-gray-200 dark:border-orange-500/30 ${isLoaded ? 'translate-y-0' : 'translate-y-full md:translate-y-20'}`}>
+        
+        {/* Mobile Pull Indicator */}
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full md:hidden z-50"></div>
+
+        {/* Header */}
+        <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-r from-orange-500 to-red-500 p-3 rounded-xl">
+                <ShoppingBag size={24} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white">Your Carts</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{totalCafes} {totalCafes === 1 ? 'cafe' : 'cafes'}</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+              <X size={24} className="text-gray-600 dark:text-gray-400" />
+            </button>
+          </div>
+
+          {/* Cafe Tabs */}
+          {totalCafes > 1 && (
+            <div className="mt-4 flex gap-2 overflow-x-auto hide-scrollbar">
+              {cafeIds.map(cafeId => (
+                <button
+                  key={cafeId}
+                  onClick={() => setSelectedCafeId(cafeId)}
+                  className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
+                    selectedCafeId === cafeId
+                      ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  {cafeCarts[cafeId].cafeteriaName}
+                  <span className="ml-2 text-xs opacity-75">({getCafeCartCount(cafeId)})</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Cart Content */}
+        {totalCafes === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-12">
+            <div className="bg-gray-100 dark:bg-gray-800 p-8 rounded-full mb-6">
+              <ShoppingBag size={64} className="text-gray-300 dark:text-gray-600" />
+            </div>
+            <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">No Carts Yet</h3>
+            <p className="text-gray-500 dark:text-gray-400 text-center mb-6 max-w-xs">
+              Start adding items from your favorite cafes!
+            </p>
+            <button 
+              onClick={onClose}
+              className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:from-orange-600 hover:to-red-600 active:scale-95 transition-all shadow-xl shadow-orange-500/40"
+            >
+              <Plus size={20} className="inline mr-2" />
+              Browse Menu
+            </button>
+          </div>
+        ) : (
+          renderCafeCart(selectedCafeId || cafeIds[0])
         )}
       </div>
     </div>
@@ -642,72 +684,25 @@ const BitePage = () => {
   const router = useRouter();
   const { menuItems } = useMenu();
   const { cafeterias } = useCafeterias();
-  const { addToCart: addToGlobalCart, clearCart } = useCart();
+  const { addToCafeCart, cafeCarts, getTotalCartsCount } = useCart();
   const [isDark, setIsDark] = useState(false);
   const [viewMode, setViewMode] = useState('grid');
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [showCart, setShowCart] = useState(false);
   const [filter, setFilter] = useState('All');
   const [isScrolled, setIsScrolled] = useState(false);
-  const [cart, setCart] = useState<{ [key: string]: { item: any; qty: number } }>({});
-
-  // Load cart from localStorage on mount
-  useEffect(() => {
-    const savedCart = localStorage.getItem('bite_cart');
-    if (savedCart) {
-      try {
-        setCart(JSON.parse(savedCart));
-      } catch (error) {
-        console.error('Failed to load cart:', error);
-      }
-    }
-  }, []);
-
-  // Save cart to localStorage whenever it changes
-  useEffect(() => {
-    if (Object.keys(cart).length > 0) {
-      localStorage.setItem('bite_cart', JSON.stringify(cart));
-    } else {
-      localStorage.removeItem('bite_cart');
-    }
-  }, [cart]);
+  const [selectedCafeId, setSelectedCafeId] = useState<string | null>(null); // For cart view
 
   const handleAddToCart = (item: any, qty: number) => {
-    setCart(prev => ({
-      ...prev,
-      [item.id]: { item, qty: (prev[item.id]?.qty || 0) + qty }
-    }));
+    const cafeteriaId = item.cafeteriaId || item.cafe?.id;
+    const cafeName = getCafeName(cafeteriaId);
+    addToCafeCart(cafeteriaId, cafeName, item, qty);
   };
 
-  const handleUpdateCart = (itemId: string, delta: number) => {
-    setCart(prev => {
-      const newCart = { ...prev };
-      if (newCart[itemId]) {
-        const newQty = newCart[itemId].qty + delta;
-        if (newQty <= 0) {
-          delete newCart[itemId];
-        } else {
-          newCart[itemId] = { ...newCart[itemId], qty: newQty };
-        }
-      }
-      return newCart;
-    });
-  };
-
-  const getCartCount = () => {
-    return Object.values(cart).reduce((total, { qty }) => total + qty, 0);
-  };
-
-  const handleProceedToCheckout = () => {
-    // Sync bite cart to global CartContext
-    clearCart(); // Clear any existing items first
-    
-    Object.values(cart).forEach(({ item, qty }) => {
-      addToGlobalCart(item, qty);
-    });
-    
-    // Navigate to checkout
-    router.push('/checkout');
+  const getTotalCartCount = () => {
+    return Object.values(cafeCarts).reduce((total, cart) => 
+      total + cart.items.reduce((sum, { quantity }) => sum + quantity, 0), 0
+    );
   };
 
   // Dark mode setup
@@ -858,9 +853,9 @@ const BitePage = () => {
                 className="relative p-2 md:p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full hover:bg-orange-50 dark:hover:bg-orange-900/30 hover:border-orange-200 dark:hover:border-orange-500 transition-colors shadow-lg"
               >
                  <ShoppingBag size={20} className="text-gray-700 dark:text-gray-300" />
-                 {getCartCount() > 0 ? (
+                 {getTotalCartCount() > 0 ? (
                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 dark:bg-orange-500 text-white text-xs font-bold rounded-full flex items-center justify-center border-2 border-white dark:border-gray-800">
-                     {getCartCount()}
+                     {getTotalCartCount()}
                    </span>
                  ) : (
                    <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800"></span>
@@ -944,12 +939,7 @@ const BitePage = () => {
 
       {/* Cart Modal */}
       {showCart && (
-         <CartView 
-           onClose={() => setShowCart(false)} 
-           cart={cart}
-           onUpdateCart={handleUpdateCart}
-           onCheckout={handleProceedToCheckout}
-         />
+         <CartView onClose={() => setShowCart(false)} />
       )}
 
       {/* Sticky FAB */}
