@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Utensils, Menu, X, ChevronRight, Moon, Sun, User, LogIn, Package } from 'lucide-react';
+import { Utensils, Menu, X, ChevronRight, Moon, Sun, User, LogIn, Package, ShoppingBag, MapPin } from 'lucide-react';
 import { useStudentAuth } from '@/contexts/StudentAuthContext';
 import { useOrders } from '@/contexts/OrderContext';
+import { useCart } from '@/contexts/CartContext';
 
 interface NavbarProps {
   isDark: boolean;
@@ -16,6 +17,10 @@ const Navbar: React.FC<NavbarProps> = ({ isDark, toggleTheme }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { student, isAuthenticated } = useStudentAuth();
   const { orders } = useOrders();
+  const { getTotalCartsCount } = useCart();
+  
+  // Get total cart count across all cafes
+  const totalCartItems = getTotalCartsCount();
   
   // Count active orders for this student (including pending approval and payment required)
   const activeOrdersCount = student ? orders.filter(
@@ -63,8 +68,8 @@ const Navbar: React.FC<NavbarProps> = ({ isDark, toggleTheme }) => {
                   : 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border-orange-300 dark:border-orange-700 hover:bg-orange-200 dark:hover:bg-orange-900/50'
               }`}
             >
-              <Package size={18} />
-              {actionRequiredCount > 0 ? 'Pay Now' : 'My Orders'}
+              <MapPin size={18} />
+              {actionRequiredCount > 0 ? 'Pay Now' : 'Track Order'}
               {activeOrdersCount > 0 && (
                 <span className={`absolute -top-1 -right-1 text-white text-xs font-black px-2 py-0.5 rounded-full animate-pulse ${
                   actionRequiredCount > 0 ? 'bg-blue-500' : 'bg-red-500'
@@ -74,6 +79,19 @@ const Navbar: React.FC<NavbarProps> = ({ isDark, toggleTheme }) => {
               )}
             </Link>
           )}
+          
+          {/* Cart Icon */}
+          <Link
+            href="/bite"
+            className="relative p-2.5 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/30 border-2 border-transparent hover:border-red-300 dark:hover:border-red-700 transition-all transform hover:scale-110"
+          >
+            <ShoppingBag size={20} className="text-gray-700 dark:text-gray-300" />
+            {totalCartItems > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                {totalCartItems}
+              </span>
+            )}
+          </Link>
           
           <button 
             onClick={toggleTheme}
@@ -128,13 +146,27 @@ const Navbar: React.FC<NavbarProps> = ({ isDark, toggleTheme }) => {
           <Link href="/bite" className="text-lg font-medium text-gray-800 dark:text-gray-200">Bite</Link>
           <a href="#" className="text-lg font-medium text-gray-800 dark:text-gray-200">Delivery Map</a>
           
+          {/* Cart Button for Mobile */}
+          <Link 
+            href="/bite"
+            className="relative bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-4 py-3 rounded-xl font-bold border-2 border-gray-300 dark:border-gray-700 flex items-center justify-center gap-2"
+          >
+            <ShoppingBag size={20} />
+            Cart
+            {totalCartItems > 0 && (
+              <span className="bg-red-500 text-white text-xs font-black px-2 py-0.5 rounded-full">
+                {totalCartItems}
+              </span>
+            )}
+          </Link>
+          
           {isAuthenticated && student && (
             <Link 
               href="/student/orders"
               className="relative bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-4 py-3 rounded-xl font-bold border-2 border-orange-300 dark:border-orange-700 flex items-center justify-center gap-2"
             >
-              <Package size={20} />
-              My Orders
+              <MapPin size={20} />
+              Track Order
               {activeOrdersCount > 0 && (
                 <span className="bg-red-500 text-white text-xs font-black px-2 py-0.5 rounded-full animate-pulse">
                   {activeOrdersCount}

@@ -28,7 +28,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useCafeterias } from '@/contexts/CafeteriaContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrders } from '@/contexts/OrderContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { Order } from '@/types';
 
@@ -374,10 +374,19 @@ const OrderTrackingView = ({
 // Main Checkout Page Component
 export default function CheckoutPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
-  const { cartItems, getCartTotal, getCartCount, appliedPromo, applyPromoCode, removePromoCode, clearCart } = useCart();
+  const { cafeCarts, getCafeCartTotal, getCafeCartCount, appliedPromo, applyPromoCode, removePromoCode, clearCafeCart } = useCart();
   const { cafeterias } = useCafeterias();
   const { addOrder } = useOrders();
+  
+  // Get the cafe ID from query params
+  const cafeIdFromQuery = searchParams.get('cafe');
+  
+  // Get the specific cafe's cart or use first available
+  const activeCafeId = cafeIdFromQuery || Object.keys(cafeCarts)[0] || '';
+  const currentCart = cafeCarts[activeCafeId];
+  const cartItems = currentCart?.items || [];
   
   // Try to get student profile for detailed information
   const studentAuth = useStudentAuth ? useStudentAuth() : null;
@@ -421,7 +430,7 @@ export default function CheckoutPage() {
   };
 
   const deliveryFee = deliveryMethod === 'delivery' ? 49 : 0;
-  const subtotal = getCartTotal();
+  const subtotal = getCafeCartTotal(activeCafeId);
   const discount = appliedPromo
     ? appliedPromo.type === 'fixed'
       ? appliedPromo.discount
@@ -491,7 +500,7 @@ export default function CheckoutPage() {
       addOrder(newOrder);
 
       // Clear cart
-      clearCart();
+      clearCafeCart(activeCafeId);
 
       setIsProcessing(false);
       setCurrentView('success');
