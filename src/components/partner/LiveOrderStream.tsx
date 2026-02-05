@@ -275,6 +275,226 @@ const NewOrderPopup = ({ order, onAccept, onDecline, onClose }: NewOrderPopupPro
 };
 
 // =====================================================
+// PENDING ORDER APPROVAL CARD - Shows full order details for approval
+// =====================================================
+interface PendingOrderApprovalCardProps {
+  order: Order;
+  onAccept: (orderId: string) => void;
+  onDecline: (orderId: string, reason: string) => void;
+}
+
+const PendingOrderApprovalCard = ({ order, onAccept, onDecline }: PendingOrderApprovalCardProps) => {
+  const [showDeclineReasons, setShowDeclineReasons] = useState(false);
+  const [customReason, setCustomReason] = useState('');
+  const orderDate = new Date(order.createdAt);
+  const timeStr = orderDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+  const dateStr = orderDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+  const handleDecline = (reason: string) => {
+    onDecline(order.id, reason);
+    setShowDeclineReasons(false);
+    setCustomReason('');
+  };
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-4 border-amber-400 dark:border-amber-600 overflow-hidden">
+      {/* Header with pulsing indicator */}
+      <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center animate-pulse">
+              <Bell size={24} className="text-white" />
+            </div>
+            <div>
+              <h3 className="text-white font-black text-xl">New Order #{order.id}</h3>
+              <p className="text-white/90 text-sm font-medium">{dateStr} at {timeStr}</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-white/80 text-sm font-medium">Order Total</p>
+            <p className="text-white font-black text-2xl">₹{order.total.toFixed(0)}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-6">
+        {/* Customer Information */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {/* Customer Details */}
+          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-800">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-black text-lg">
+                {(order.studentName || order.customerName || 'C').charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase">Customer</p>
+                <p className="font-black text-gray-900 dark:text-white text-lg">
+                  {order.studentName || order.customerName || 'Customer'}
+                </p>
+              </div>
+            </div>
+            {(order.studentPhone || order.customerPhone) && (
+              <a 
+                href={`tel:${order.studentPhone || order.customerPhone}`}
+                className="flex items-center gap-2 p-3 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors font-bold"
+              >
+                <Phone size={18} />
+                {order.studentPhone || order.customerPhone}
+              </a>
+            )}
+          </div>
+
+          {/* Delivery Information */}
+          <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border-2 border-purple-200 dark:border-purple-800">
+            <div className="space-y-3">
+              <div>
+                <p className="text-xs text-purple-600 dark:text-purple-400 font-bold uppercase mb-1">Delivery Type</p>
+                <div className="flex items-center gap-2">
+                  {order.deliveryType === 'pickup' ? (
+                    <>
+                      <Package size={20} className="text-purple-600" />
+                      <span className="font-black text-gray-900 dark:text-white text-lg">Pickup</span>
+                    </>
+                  ) : (
+                    <>
+                      <Truck size={20} className="text-purple-600" />
+                      <span className="font-black text-gray-900 dark:text-white text-lg">Delivery</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              {order.deliveryAddress && (
+                <div>
+                  <p className="text-xs text-purple-600 dark:text-purple-400 font-bold uppercase mb-1">Address</p>
+                  <div className="flex items-start gap-2">
+                    <MapPin size={16} className="text-purple-600 mt-1 flex-shrink-0" />
+                    <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">{order.deliveryAddress}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Order Items */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Utensils size={20} className="text-gray-600 dark:text-gray-400" />
+            <h4 className="font-black text-gray-900 dark:text-white text-lg">Order Items</h4>
+          </div>
+          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 space-y-3">
+            {order.items.map((item, idx) => (
+              <div key={idx} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-black text-lg">{item.quantity}</span>
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900 dark:text-white">{item.name}</p>
+                    <p className="text-sm text-gray-500">₹{(item.subtotal / item.quantity).toFixed(0)} each</p>
+                  </div>
+                </div>
+                <p className="font-black text-gray-900 dark:text-white text-lg">₹{item.subtotal.toFixed(0)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Special Instructions */}
+        {order.specialInstructions && (
+          <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border-2 border-yellow-200 dark:border-yellow-800">
+            <div className="flex items-start gap-2">
+              <MessageSquare size={20} className="text-yellow-600 mt-1 flex-shrink-0" />
+              <div>
+                <p className="text-xs text-yellow-600 dark:text-yellow-400 font-bold uppercase mb-1">Special Instructions</p>
+                <p className="text-gray-700 dark:text-gray-300 font-medium">{order.specialInstructions}</p>
+              </div>
+            </div>
+          </div>
+        )}        {/* Order Summary */}
+        <div className="mb-6 p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border-2 border-green-300 dark:border-green-700">
+          <h4 className="font-black text-green-800 dark:text-green-300 mb-3">Order Summary</h4>
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-400">Items Total</span>
+              <span className="font-bold text-gray-900 dark:text-white">
+                ₹{order.items.reduce((sum, item) => sum + item.subtotal, 0).toFixed(0)}
+              </span>
+            </div>
+            <div className="pt-2 border-t-2 border-green-300 dark:border-green-700 flex justify-between">
+              <span className="font-black text-green-800 dark:text-green-300 text-lg">Order Total</span>
+              <span className="font-black text-green-800 dark:text-green-300 text-2xl">₹{order.total.toFixed(0)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        {!showDeclineReasons ? (
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              onClick={() => setShowDeclineReasons(true)}
+              className="py-4 bg-red-500 hover:bg-red-600 text-white rounded-xl font-black text-lg flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
+            >
+              <XCircle size={24} />
+              Decline Order
+            </button>
+            <button
+              onClick={() => onAccept(order.id)}
+              className="py-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl font-black text-lg flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
+            >
+              <Check size={24} />
+              Accept Order
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border-2 border-red-200 dark:border-red-800">
+              <p className="text-sm font-bold text-red-800 dark:text-red-300 mb-3">Select a reason to decline:</p>
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                {DECLINE_REASONS.map((reason) => (
+                  <button
+                    key={reason}
+                    onClick={() => handleDecline(reason)}
+                    className="py-3 px-4 bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 rounded-lg font-semibold text-sm hover:bg-red-100 dark:hover:bg-red-900/30 transition-all border border-red-300 dark:border-red-700"
+                  >
+                    {reason}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={customReason}
+                  onChange={(e) => setCustomReason(e.target.value)}
+                  placeholder="Or type a custom reason..."
+                  className="flex-1 px-4 py-3 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium"
+                />
+                <button
+                  onClick={() => customReason && handleDecline(customReason)}
+                  disabled={!customReason}
+                  className="px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Send
+                </button>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setShowDeclineReasons(false);
+                setCustomReason('');
+              }}
+              className="w-full py-3 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-bold transition-colors"
+            >
+              ← Cancel
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// =====================================================
 // ORDER CARD - For accepted/active orders only
 // =====================================================
 interface OrderCardProps {
@@ -870,29 +1090,64 @@ const LiveOrderStream = ({ cafeteriaId }: { cafeteriaId: string }) => {
       }
       setDeleteConfirm(null);
     }
-  };
-
-  // Filter orders - Only show NON-PENDING orders (pending orders are handled by popup)
+  };  // Filter orders - Only show orders that are CONFIRMED or later
+  // Pending orders → Show in popup + approval section at top
+  // Approved/Payment pending → Don't show in main section (waiting for student payment)
+  // Confirmed onwards → Show in Active Orders section as cards
+  const pendingOrders = orders.filter(o => o.status === 'pending');
   const awaitingPayment = orders.filter(o => o.status === 'approved' || o.status === 'payment_pending');
   const activeOrders = orders.filter(o => ['confirmed', 'preparing', 'ready'].includes(o.status));
   const completedOrders = orders.filter(o => ['completed', 'cancelled', 'declined'].includes(o.status));
-  const pendingCount = orders.filter(o => o.status === 'pending').length;
+  const awaitingPaymentCount = awaitingPayment.length;
 
   return (
     <div className="mt-6">
-      {/* Pending Orders Indicator */}
-      {pendingCount > 0 && !pendingPopup && (
-        <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-300 dark:border-amber-700 rounded-2xl animate-pulse">
+      {/* PENDING ORDERS APPROVAL SECTION - AT TOP */}
+      {pendingOrders.length > 0 && (
+        <div className="mb-8">
+          <div className="mb-4 p-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white/20 rounded-xl animate-pulse">
+                <Bell size={28} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black">
+                  {pendingOrders.length} Order{pendingOrders.length > 1 ? 's' : ''} Awaiting Approval
+                </h2>
+                <p className="text-white/90 font-medium">
+                  Review and approve or decline orders below
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Pending Orders Grid */}
+          <div className="grid grid-cols-1 gap-4">
+            {pendingOrders.map(order => (
+              <PendingOrderApprovalCard
+                key={order.id}
+                order={order}
+                onAccept={handleAcceptOrder}
+                onDecline={handleDeclineOrder}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Awaiting Payment Indicator (not shown as cards) */}
+      {awaitingPaymentCount > 0 && (
+        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-700 rounded-2xl">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-500 rounded-xl">
-              <Bell size={24} className="text-white" />
+            <div className="p-2 bg-blue-500 rounded-xl">
+              <CreditCard size={24} className="text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="font-bold text-amber-800 dark:text-amber-200">
-                {pendingCount} pending order{pendingCount > 1 ? 's' : ''} waiting for review
+              <h3 className="font-bold text-blue-800 dark:text-blue-200">
+                {awaitingPaymentCount} order{awaitingPaymentCount > 1 ? 's' : ''} awaiting student payment
               </h3>
-              <p className="text-sm text-amber-600 dark:text-amber-400">
-                New order popups will appear automatically
+              <p className="text-sm text-blue-600 dark:text-blue-400">
+                Orders will appear below once payment is confirmed
               </p>
             </div>
           </div>
@@ -900,8 +1155,7 @@ const LiveOrderStream = ({ cafeteriaId }: { cafeteriaId: string }) => {
       )}
 
       {/* Tab Navigation */}
-      <div className="flex items-center gap-3 mb-6">
-        <button
+      <div className="flex items-center gap-3 mb-6">        <button
           onClick={() => setActiveTab('active')}
           className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold transition-all ${
             activeTab === 'active'
@@ -911,11 +1165,11 @@ const LiveOrderStream = ({ cafeteriaId }: { cafeteriaId: string }) => {
         >
           <ChefHat size={18} />
           Active Orders
-          {(awaitingPayment.length + activeOrders.length) > 0 && (
+          {activeOrders.length > 0 && (
             <span className={`px-2.5 py-0.5 rounded-full text-sm font-black ${
               activeTab === 'active' ? 'bg-white text-green-600' : 'bg-green-500 text-white'
             }`}>
-              {awaitingPayment.length + activeOrders.length}
+              {activeOrders.length}
             </span>
           )}
         </button>
@@ -936,41 +1190,16 @@ const LiveOrderStream = ({ cafeteriaId }: { cafeteriaId: string }) => {
             </span>
           )}
         </button>
-      </div>
-
-      {/* Active Orders Tab */}
+      </div>      {/* Active Orders Tab */}
       {activeTab === 'active' && (
         <>
-          {/* Awaiting Payment Orders */}
-          {awaitingPayment.length > 0 && (
+          {/* Active/Confirmed Orders - Only show confirmed and later */}
+          {activeOrders.length > 0 ? (
             <div className="mb-6">
-              <h3 className="text-sm font-bold text-blue-600 dark:text-blue-400 uppercase mb-3 flex items-center gap-2">
-                <CreditCard size={16} />
-                Awaiting Payment ({awaitingPayment.length})
+              <h3 className="text-sm font-bold text-green-600 dark:text-green-400 uppercase mb-3 flex items-center gap-2">
+                <ChefHat size={16} />
+                Confirmed Orders ({activeOrders.length})
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                {awaitingPayment.map(order => (
-                  <OrderCard 
-                    key={order.id} 
-                    order={order} 
-                    onStatusChange={handleStatusChange}
-                    onDelete={handleDeleteOrder}
-                    onViewDetails={setViewingOrder}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Active/In-Progress Orders */}
-          {activeOrders.length > 0 && (
-            <div className="mb-6">
-              {awaitingPayment.length > 0 && (
-                <h3 className="text-sm font-bold text-green-600 dark:text-green-400 uppercase mb-3 flex items-center gap-2">
-                  <ChefHat size={16} />
-                  In Progress ({activeOrders.length})
-                </h3>
-              )}
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                 {activeOrders.map(order => (
                   <OrderCard 
@@ -983,17 +1212,19 @@ const LiveOrderStream = ({ cafeteriaId }: { cafeteriaId: string }) => {
                 ))}
               </div>
             </div>
-          )}
-
-          {/* Empty State */}
-          {awaitingPayment.length === 0 && activeOrders.length === 0 && (
+          ) : (
             <div className="text-center py-16">
               <div className="bg-gray-50 dark:bg-gray-800 rounded-3xl p-12 max-w-md mx-auto">
                 <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
                   <ChefHat size={40} className="text-gray-400" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">No Active Orders</h3>
-                <p className="text-gray-500">Accepted orders will appear here</p>
+                <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">No Confirmed Orders</h3>
+                <p className="text-gray-500 mb-2">Orders will appear here once students complete payment</p>
+                {awaitingPaymentCount > 0 && (
+                  <p className="text-blue-600 dark:text-blue-400 text-sm font-semibold mt-3">
+                    {awaitingPaymentCount} order{awaitingPaymentCount > 1 ? 's are' : ' is'} waiting for payment
+                  </p>
+                )}
                 <div className="mt-4 flex items-center justify-center gap-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                   <span className="text-sm text-gray-400">Listening for orders...</span>

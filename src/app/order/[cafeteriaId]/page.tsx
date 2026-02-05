@@ -22,7 +22,7 @@ import { useCafeterias } from '@/contexts/CafeteriaContext';
 import { useMenu } from '@/contexts/MenuContext';
 import { useCart } from '@/contexts/CartContext';
 import { Cafeteria, MenuItem } from '@/types';
-import { CartDrawer } from '@/components/student/CartDrawer';
+import { CartView } from '@/components/student/CartView';
 
 /* --- Custom Animations & Styles --- */
 const CustomStyles = () => (
@@ -434,13 +434,13 @@ export default function MenuExplorerPage() {
               </button>
             </div>
           </div>
+        )}        {/* Cart View */}
+        {isCartOpen && (
+          <CartView 
+            onClose={() => setIsCartOpen(false)}
+            cafeteriaId={cafeteriaId}
+          />
         )}
-
-        {/* Cart Drawer */}
-        <CartDrawer 
-          isOpen={isCartOpen}
-          onClose={() => setIsCartOpen(false)}
-        />
 
         {/* Item Detail Modal */}
         {selectedItem && (

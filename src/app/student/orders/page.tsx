@@ -103,6 +103,7 @@ interface PaymentModalProps {
 const PaymentModal = ({ order, onClose, onPaymentComplete }: PaymentModalProps) => {
   const [selectedMethod, setSelectedMethod] = useState<string>('upi');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showQRCode, setShowQRCode] = useState(false);
 
   const paymentMethods = [
     { id: 'upi', name: 'UPI', icon: '📱', description: 'Pay via UPI apps' },
@@ -111,7 +112,16 @@ const PaymentModal = ({ order, onClose, onPaymentComplete }: PaymentModalProps) 
     { id: 'cash', name: 'Cash', icon: '💵', description: 'Pay on pickup' },
   ];
 
+  // Generate UPI payment string
+  const upiId = 'campusbites@paytm'; // Replace with actual UPI ID
+  const upiString = `upi://pay?pa=${upiId}&pn=CampusBites&am=${order.total.toFixed(2)}&cu=INR&tn=Order ${order.id}`;
+
   const handlePayment = async () => {
+    if (selectedMethod === 'upi') {
+      setShowQRCode(true);
+      return;
+    }
+
     setIsProcessing(true);
     // Simulate payment processing
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -137,87 +147,155 @@ const PaymentModal = ({ order, onClose, onPaymentComplete }: PaymentModalProps) 
               <p className="text-white/80">Order {order.id}</p>
             </div>
           </div>
-        </div>
-
-        {/* Content */}
+        </div>        {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Order Summary */}
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4">
-            <h3 className="font-bold text-gray-900 dark:text-white mb-3">Order Summary</h3>
-            <div className="space-y-2">
-              {order.items.map((item, idx) => (
-                <div key={idx} className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">{item.quantity}x {item.name}</span>
-                  <span className="font-medium text-gray-900 dark:text-white">₹{item.subtotal.toFixed(2)}</span>
-                </div>
-              ))}
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
-                <div className="flex justify-between font-bold">
-                  <span className="text-gray-900 dark:text-white">Total</span>
-                  <span className="text-green-600 dark:text-green-400 text-xl">₹{order.total.toFixed(2)}</span>
+          {!showQRCode ? (
+            <>
+              {/* Order Summary */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4">
+                <h3 className="font-bold text-gray-900 dark:text-white mb-3">Order Summary</h3>
+                <div className="space-y-2">
+                  {order.items.map((item, idx) => (
+                    <div key={idx} className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">{item.quantity}x {item.name}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">₹{item.subtotal.toFixed(2)}</span>
+                    </div>
+                  ))}
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                    <div className="flex justify-between font-bold">
+                      <span className="text-gray-900 dark:text-white">Total</span>
+                      <span className="text-green-600 dark:text-green-400 text-xl">₹{order.total.toFixed(2)}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Payment Methods */}
-          <div>
-            <h3 className="font-bold text-gray-900 dark:text-white mb-3">Select Payment Method</h3>
-            <div className="grid grid-cols-2 gap-3">
-              {paymentMethods.map((method) => (
+              {/* Payment Methods */}
+              <div>
+                <h3 className="font-bold text-gray-900 dark:text-white mb-3">Select Payment Method</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {paymentMethods.map((method) => (
+                    <button
+                      key={method.id}
+                      onClick={() => setSelectedMethod(method.id)}
+                      className={`p-4 rounded-2xl border-2 transition-all text-left ${
+                        selectedMethod === method.id
+                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="text-2xl mb-2">{method.icon}</div>
+                      <p className="font-bold text-gray-900 dark:text-white">{method.name}</p>
+                      <p className="text-xs text-gray-500">{method.description}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Cash Notice */}
+              {selectedMethod === 'cash' && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-4 border border-amber-200 dark:border-amber-800">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle size={24} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold text-amber-700 dark:text-amber-400">Cash on Pickup</p>
+                      <p className="text-sm text-amber-600 dark:text-amber-500">
+                        Please pay ₹{order.total.toFixed(2)} when you collect your order
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {/* QR Code Payment View */}
+              <div className="text-center">
+                <h3 className="font-black text-2xl text-gray-900 dark:text-white mb-2">Scan to Pay</h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  Scan this QR code with any UPI app to complete payment
+                </p>
+
+                {/* QR Code Container */}
+                <div className="bg-white p-8 rounded-3xl shadow-2xl mx-auto w-fit mb-6">
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-2xl border-4 border-green-500">
+                    {/* QR Code SVG - Using a simple generator approach */}
+                    <div className="w-64 h-64 bg-white rounded-xl flex items-center justify-center overflow-hidden">
+                      <img 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(upiString)}&bgcolor=ffffff&color=000000&qzone=1&format=svg`}
+                        alt="Payment QR Code"
+                        className="w-full h-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Amount */}
+                <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl p-6 mb-4">
+                  <p className="text-sm font-medium mb-1">Amount to Pay</p>
+                  <p className="text-5xl font-black">₹{order.total.toFixed(2)}</p>
+                </div>
+
+                {/* UPI ID */}
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">UPI ID</p>
+                  <p className="font-mono font-bold text-gray-900 dark:text-white">{upiId}</p>
+                </div>
+
+                {/* Instructions */}
+                <div className="mt-6 text-left bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-4 border border-blue-200 dark:border-blue-800">
+                  <p className="font-bold text-blue-900 dark:text-blue-100 mb-2">📱 How to pay:</p>
+                  <ol className="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-decimal list-inside">
+                    <li>Open any UPI app (GPay, PhonePe, Paytm, etc.)</li>
+                    <li>Scan the QR code above</li>
+                    <li>Verify the amount and complete payment</li>
+                    <li>Click "I've Paid" button below after payment</li>
+                  </ol>
+                </div>
+
+                {/* Confirmation Button */}
                 <button
-                  key={method.id}
-                  onClick={() => setSelectedMethod(method.id)}
-                  className={`p-4 rounded-2xl border-2 transition-all text-left ${
-                    selectedMethod === method.id
-                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                  }`}
+                  onClick={() => {
+                    onPaymentComplete(order.id, 'upi');
+                  }}
+                  className="w-full mt-6 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all"
                 >
-                  <div className="text-2xl mb-2">{method.icon}</div>
-                  <p className="font-bold text-gray-900 dark:text-white">{method.name}</p>
-                  <p className="text-xs text-gray-500">{method.description}</p>
+                  <Check size={24} />
+                  I've Completed Payment
                 </button>
-              ))}
-            </div>
-          </div>
 
-          {/* Cash Notice */}
-          {selectedMethod === 'cash' && (
-            <div className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-4 border border-amber-200 dark:border-amber-800">
-              <div className="flex items-start gap-3">
-                <AlertTriangle size={24} className="text-amber-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-bold text-amber-700 dark:text-amber-400">Cash on Pickup</p>
-                  <p className="text-sm text-amber-600 dark:text-amber-500">
-                    Please pay ₹{order.total.toFixed(2)} when you collect your order
-                  </p>
-                </div>
+                {/* Back Button */}
+                <button
+                  onClick={() => setShowQRCode(false)}
+                  className="w-full mt-3 py-3 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-bold transition-colors"
+                >
+                  ← Choose Different Method
+                </button>
               </div>
-            </div>
+            </>
           )}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 p-5 bg-gray-50 dark:bg-gray-800">
-          <button
-            onClick={handlePayment}
-            disabled={isProcessing}
-            className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
-          >
-            {isProcessing ? (
-              <>
-                <RefreshCw size={24} className="animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <Check size={24} />
-                {selectedMethod === 'cash' ? 'Confirm Cash on Pickup' : `Pay ₹${order.total.toFixed(2)}`}
-              </>
-            )}
-          </button>
-        </div>
+        </div>        {/* Action Buttons */}
+        {!showQRCode && (
+          <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 p-5 bg-gray-50 dark:bg-gray-800">
+            <button
+              onClick={handlePayment}
+              disabled={isProcessing}
+              className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+            >
+              {isProcessing ? (
+                <>
+                  <RefreshCw size={24} className="animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Check size={24} />
+                  {selectedMethod === 'cash' ? 'Confirm Cash on Pickup' : selectedMethod === 'upi' ? 'Show QR Code' : `Pay ₹${order.total.toFixed(2)}`}
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </>
   );

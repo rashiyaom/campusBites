@@ -375,7 +375,7 @@ const OrderTrackingView = ({
 export default function CheckoutPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user } = useAuth(); // Partner auth (kept for backward compatibility)
   const { cafeCarts, getCafeCartTotal, getCafeCartCount, appliedPromo, applyPromoCode, removePromoCode, clearCafeCart } = useCart();
   const { cafeterias } = useCafeterias();
   const { addOrder } = useOrders();
@@ -387,10 +387,11 @@ export default function CheckoutPage() {
   const activeCafeId = cafeIdFromQuery || Object.keys(cafeCarts)[0] || '';
   const currentCart = cafeCarts[activeCafeId];
   const cartItems = currentCart?.items || [];
-  
-  // Try to get student profile for detailed information
+    // Get student authentication (primary for checkout)
   const studentAuth = useStudentAuth ? useStudentAuth() : null;
   const student = studentAuth?.student || null;
+  const isStudentAuthenticated = studentAuth?.isAuthenticated || false;
+  const isStudentAuthLoading = studentAuth?.isLoading || false;
 
   const [currentView, setCurrentView] = useState<'checkout' | 'success' | 'tracking'>('checkout');
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup' | 'dineIn'>('pickup');
@@ -402,11 +403,16 @@ export default function CheckoutPage() {
   const [orderNumber, setOrderNumber] = useState('');
   const [displayOrderNumber, setDisplayOrderNumber] = useState(''); // For UI display only
 
+  // Redirect to student login if not authenticated (wait for auth to finish loading first)
   useEffect(() => {
-    if (!user) {
+    // Don't redirect while still loading auth state
+    if (isStudentAuthLoading) return;
+    
+    // Only redirect if neither student nor partner is authenticated
+    if (!isStudentAuthenticated && !user) {
       router.push('/student/login');
     }
-  }, [user, router]);
+  }, [isStudentAuthenticated, isStudentAuthLoading, user, router]);
 
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains('dark'));
@@ -418,7 +424,6 @@ export default function CheckoutPage() {
     document.documentElement.classList.toggle('dark');
     setIsDark(!isDark);
   };
-
   const handleApplyPromo = () => {
     const success = applyPromoCode(promoCode);
     if (success) {
@@ -429,17 +434,25 @@ export default function CheckoutPage() {
     }
   };
 
-  const deliveryFee = deliveryMethod === 'delivery' ? 49 : 0;
+  // Consistent pricing system across the app
   const subtotal = getCafeCartTotal(activeCafeId);
-  const discount = appliedPromo
-    ? appliedPromo.type === 'fixed'
-      ? appliedPromo.discount
+  const serviceFee = 165; // Service Fee (₹165)
+  const freeDeliveryThreshold = 2075; // ₹2075 for free delivery
+  const deliveryFee = deliveryMethod === 'dineIn' 
+    ? 0 
+    : (subtotal >= freeDeliveryThreshold ? 0 : 207); // ₹207 or FREE
+  
+  // Get discount from applied promo on this specific cafe's cart
+  const discount = currentCart?.appliedPromo
+    ? currentCart.appliedPromo.type === 'fixed'
+      ? currentCart.appliedPromo.discount
       : Math.min(
-          (subtotal * appliedPromo.discount) / 100,
-          appliedPromo.maxDiscount || Infinity
+          (subtotal * currentCart.appliedPromo.discount) / 100,
+          currentCart.appliedPromo.maxDiscount || Infinity
         )
     : 0;
-  const total = subtotal + deliveryFee - discount;
+  
+  const total = subtotal + serviceFee + deliveryFee - discount;
 
   const handlePlaceOrder = async () => {
     if (deliveryMethod === 'delivery' && !address.trim()) {
@@ -503,12 +516,18 @@ export default function CheckoutPage() {
       clearCafeCart(activeCafeId);
 
       setIsProcessing(false);
-      setCurrentView('success');
-    }, 2000);
+      setCurrentView('success');    }, 2000);
   };
-
-  if (!user) {
-    return null;
+  // Show loading while checking auth state
+  if (isStudentAuthLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400 font-medium">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   // Success View
@@ -643,11 +662,9 @@ export default function CheckoutPage() {
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
                   <Truck size={24} className="text-orange-500" />
                   Dining Method
-                </h2>
-
-                <div className="grid md:grid-cols-3 gap-4">
+                </h2>                <div className="grid md:grid-cols-3 gap-4">
                   {[
-                    { id: 'delivery', icon: Truck, label: 'Delivery', fee: '₹49', color: 'orange' },
+                    { id: 'delivery', icon: Truck, label: 'Delivery', fee: subtotal >= freeDeliveryThreshold ? 'Free' : '₹207', color: 'orange' },
                     { id: 'pickup', icon: ShoppingBag, label: 'Pickup', fee: 'Free', color: 'green' },
                     { id: 'dineIn', icon: Utensils, label: 'Dine In', fee: 'Free', color: 'blue' },
                   ].map(({ id, icon: Icon, label, fee, color }) => (
@@ -820,26 +837,29 @@ export default function CheckoutPage() {
                         </button>
                       </div>
                     )}
-                  </div>
-
-                  {/* Price Breakdown */}
+                  </div>                  {/* Price Breakdown */}
                   <div className="space-y-3 pt-4 border-t-2 border-dashed border-gray-300 dark:border-gray-700">
                     <div className="flex justify-between text-gray-600 dark:text-gray-400">
                       <span>Subtotal</span>
-                      <span className="font-semibold">₹{subtotal.toFixed(2)}</span>
+                      <span className="font-semibold">₹{subtotal.toFixed(0)}</span>
                     </div>
                     
-                    {deliveryFee > 0 && (
-                      <div className="flex justify-between text-gray-600 dark:text-gray-400">
-                        <span>Delivery Fee</span>
-                        <span className="font-semibold">₹{deliveryFee.toFixed(2)}</span>
-                      </div>
-                    )}
+                    <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                      <span>Service Fee</span>
+                      <span className="font-semibold">₹{serviceFee.toFixed(0)}</span>
+                    </div>
+
+                    <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                      <span>Delivery Fee</span>
+                      <span className={`font-semibold ${deliveryFee === 0 ? 'text-green-600 dark:text-green-400' : ''}`}>
+                        {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee.toFixed(0)}`}
+                      </span>
+                    </div>
 
                     {discount > 0 && (
                       <div className="flex justify-between text-green-600 dark:text-green-400">
                         <span>Discount</span>
-                        <span className="font-semibold">-₹{discount.toFixed(2)}</span>
+                        <span className="font-semibold">-₹{discount.toFixed(0)}</span>
                       </div>
                     )}
 
