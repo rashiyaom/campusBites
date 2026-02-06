@@ -140,94 +140,111 @@ const NewOrderPopup = ({ order, onAccept, onDecline, onClose }: NewOrderPopupPro
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop with blur */}
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       
-      {/* Popup */}
-      <div className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden animate-bounce-in">
-        {/* Header with pulsing animation */}
-        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 p-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-white/10 animate-pulse" />
-          <div className="relative flex items-center gap-4">
-            <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center animate-bounce">
-              <Bell size={32} className="text-white" />
+      {/* Popup - Compact and Professional */}
+      <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800">
+        {/* Header - Compact */}
+        <div className="bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-3.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                <Bell size={20} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">New Order #{order.id}</h2>
+                <p className="text-white/75 text-xs">{new Date(order.createdAt).toLocaleTimeString()}</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-2xl font-black text-white">NEW ORDER!</h2>
-              <p className="text-white/80 font-mono">{order.id}</p>
-            </div>
+            <button
+              onClick={onClose}
+              className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
+              aria-label="Close"
+            >
+              <X size={18} className="text-white" />
+            </button>
           </div>
         </div>
 
-        {/* Order Summary */}
-        <div className="p-6 space-y-4">
-          {/* Customer */}
-          <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xl font-bold">
-              {(order.studentName || order.customerName || 'C').charAt(0).toUpperCase()}
-            </div>
-            <div className="flex-1">
-              <p className="font-bold text-gray-900 dark:text-white text-lg">
-                {order.studentName || order.customerName || 'Customer'}
-              </p>
-              <p className="text-sm text-gray-500">
-                {order.items.length} items • {order.deliveryType === 'pickup' ? '📦 Pickup' : '🚚 Delivery'}
-              </p>
+        {/* Content - Compact */}
+        <div className="p-5 space-y-4">
+          {/* Customer & Total Row */}
+          <div className="flex items-center justify-between p-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white text-sm font-bold">
+                {(order.studentName || order.customerName || 'C').charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="font-bold text-gray-900 dark:text-white text-sm">
+                  {order.studentName || order.customerName || 'Customer'}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {order.items.length} items • {order.deliveryType === 'pickup' ? 'Pickup' : 'Delivery'}
+                </p>
+              </div>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-black text-green-600">₹{order.total.toFixed(0)}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Total</p>
+              <p className="text-xl font-bold text-green-600 dark:text-green-500">₹{order.total.toFixed(0)}</p>
             </div>
           </div>
 
-          {/* Items List */}
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-            <p className="text-xs font-bold text-gray-500 uppercase mb-2">Order Items</p>
-            <div className="space-y-2 max-h-32 overflow-y-auto">
+          {/* Items List - Compact */}
+          <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2 flex items-center gap-1.5">
+              <Utensils size={12} />
+              Order Items
+            </p>
+            <div className="space-y-1.5 max-h-32 overflow-y-auto">
               {order.items.map((item, idx) => (
-                <div key={idx} className="flex justify-between text-sm">
+                <div key={idx} className="flex justify-between text-xs">
                   <span className="text-gray-700 dark:text-gray-300">
-                    <span className="font-bold text-indigo-600">{item.quantity}×</span> {item.name}
+                    <span className="font-bold text-orange-600 dark:text-orange-500">{item.quantity}×</span> {item.name}
                   </span>
-                  <span className="font-semibold">₹{item.subtotal.toFixed(0)}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">₹{item.subtotal.toFixed(0)}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Special Instructions */}
+          {/* Special Instructions - Compact */}
           {order.specialInstructions && (
             <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 border border-amber-200 dark:border-amber-800">
-              <p className="text-xs font-bold text-amber-700 dark:text-amber-400 mb-1">📝 Special Instructions</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{order.specialInstructions}</p>
+              <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1 flex items-center gap-1.5">
+                <MessageSquare size={12} />
+                Special Instructions
+              </p>
+              <p className="text-xs text-gray-700 dark:text-gray-300">{order.specialInstructions}</p>
             </div>
           )}
 
-          {/* Actions */}
+          {/* Actions - Compact and Professional */}
           {!showDeclineReasons ? (
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-2.5 pt-2">
               <button
                 onClick={() => setShowDeclineReasons(true)}
-                className="flex-1 py-4 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-2xl font-black text-lg flex items-center justify-center gap-2 hover:bg-red-200 transition-all"
+                className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-red-600 dark:text-red-400 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all border border-gray-200 dark:border-gray-700"
               >
-                <XCircle size={24} />
+                <XCircle size={16} />
                 Decline
               </button>
               <button
                 onClick={() => onAccept(order.id)}
-                className="flex-[2] py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
+                className="flex-[2] py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
               >
-                <Check size={24} />
+                <Check size={16} />
                 Accept Order
               </button>
             </div>
           ) : (
             <div className="space-y-3 pt-2">
-              <p className="text-sm font-bold text-gray-700 dark:text-gray-300">Select decline reason:</p>
+              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Select decline reason:</p>
               <div className="grid grid-cols-2 gap-2">
                 {DECLINE_REASONS.map((reason) => (
                   <button
                     key={reason}
                     onClick={() => handleDecline(reason)}
-                    className="py-3 px-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl font-semibold text-sm hover:bg-red-100 transition-all border border-red-200 dark:border-red-800"
+                    className="py-2 px-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg font-medium text-xs hover:bg-red-100 dark:hover:bg-red-900/30 transition-all border border-red-200 dark:border-red-800"
                   >
                     {reason}
                   </button>
@@ -239,19 +256,19 @@ const NewOrderPopup = ({ order, onAccept, onDecline, onClose }: NewOrderPopupPro
                   value={customReason}
                   onChange={(e) => setCustomReason(e.target.value)}
                   placeholder="Or type custom reason..."
-                  className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm"
+                  className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
                 <button
                   onClick={() => customReason && handleDecline(customReason)}
                   disabled={!customReason}
-                  className="px-4 py-3 bg-red-500 text-white rounded-xl font-bold disabled:opacity-50"
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold text-xs disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-600 transition-colors"
                 >
-                  Decline
+                  Send
                 </button>
               </div>
               <button
                 onClick={() => setShowDeclineReasons(false)}
-                className="w-full py-2 text-gray-500 hover:text-gray-700 font-medium"
+                className="w-full py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium text-xs transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 ← Back
               </button>

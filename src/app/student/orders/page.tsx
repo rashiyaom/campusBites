@@ -18,7 +18,10 @@ import {
   Wallet,
   AlertTriangle,
   Check,
-  Bell
+  Bell,
+  Smartphone,
+  Banknote,
+  BadgeDollarSign
 } from 'lucide-react';
 
 const statusConfig: Record<OrderStatus, { 
@@ -106,10 +109,38 @@ const PaymentModal = ({ order, onClose, onPaymentComplete }: PaymentModalProps) 
   const [showQRCode, setShowQRCode] = useState(false);
 
   const paymentMethods = [
-    { id: 'upi', name: 'UPI', icon: '📱', description: 'Pay via UPI apps' },
-    { id: 'card', name: 'Card', icon: '💳', description: 'Credit/Debit Card' },
-    { id: 'wallet', name: 'Wallet', icon: '👛', description: 'CampusBites Wallet' },
-    { id: 'cash', name: 'Cash', icon: '💵', description: 'Pay on pickup' },
+    { 
+      id: 'upi', 
+      name: 'UPI', 
+      icon: Smartphone, 
+      description: 'Pay via UPI apps',
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50 dark:bg-purple-900/20'
+    },
+    { 
+      id: 'card', 
+      name: 'Card', 
+      icon: CreditCard, 
+      description: 'Credit/Debit Card',
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50 dark:bg-blue-900/20'
+    },
+    { 
+      id: 'wallet', 
+      name: 'Wallet', 
+      icon: Wallet, 
+      description: 'CampusBites Wallet',
+      color: 'text-green-600',
+      bgColor: 'bg-green-50 dark:bg-green-900/20'
+    },
+    { 
+      id: 'cash', 
+      name: 'Cash', 
+      icon: Banknote, 
+      description: 'Pay on pickup',
+      color: 'text-emerald-600',
+      bgColor: 'bg-emerald-50 dark:bg-emerald-900/20'
+    },
   ];
 
   // Generate UPI payment string
@@ -132,39 +163,48 @@ const PaymentModal = ({ order, onClose, onPaymentComplete }: PaymentModalProps) 
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" onClick={onClose} />
       
       {/* Modal */}
-      <div className="fixed inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-md bg-white dark:bg-gray-900 rounded-3xl shadow-2xl z-50 overflow-hidden flex flex-col">
+      <div className="fixed inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-5">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/20 rounded-xl">
-              <CreditCard size={28} className="text-white" />
+        <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-5 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
+                <CreditCard size={24} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">Complete Payment</h2>
+                <p className="text-white/80 text-xs">Order {order.id}</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-2xl font-black text-white">Complete Payment</h2>
-              <p className="text-white/80">Order {order.id}</p>
-            </div>
+            <button
+              onClick={onClose}
+              className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
+              aria-label="Close payment modal"
+            >
+              <XCircle size={20} className="text-white" />
+            </button>
           </div>
         </div>        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
           {!showQRCode ? (
             <>
               {/* Order Summary */}
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4">
-                <h3 className="font-bold text-gray-900 dark:text-white mb-3">Order Summary</h3>
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+                <h3 className="font-bold text-gray-900 dark:text-white mb-3 text-sm">Order Summary</h3>
                 <div className="space-y-2">
                   {order.items.map((item, idx) => (
                     <div key={idx} className="flex justify-between text-sm">
                       <span className="text-gray-600 dark:text-gray-400">{item.quantity}x {item.name}</span>
-                      <span className="font-medium text-gray-900 dark:text-white">₹{item.subtotal.toFixed(2)}</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">₹{item.subtotal.toFixed(2)}</span>
                     </div>
                   ))}
-                  <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
-                    <div className="flex justify-between font-bold">
-                      <span className="text-gray-900 dark:text-white">Total</span>
-                      <span className="text-green-600 dark:text-green-400 text-xl">₹{order.total.toFixed(2)}</span>
+                  <div className="border-t border-gray-300 dark:border-gray-600 pt-2 mt-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-900 dark:text-white font-bold">Total</span>
+                      <span className="text-green-600 dark:text-green-400 text-lg font-bold">₹{order.total.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
@@ -174,32 +214,44 @@ const PaymentModal = ({ order, onClose, onPaymentComplete }: PaymentModalProps) 
               <div>
                 <h3 className="font-bold text-gray-900 dark:text-white mb-3">Select Payment Method</h3>
                 <div className="grid grid-cols-2 gap-3">
-                  {paymentMethods.map((method) => (
-                    <button
-                      key={method.id}
-                      onClick={() => setSelectedMethod(method.id)}
-                      className={`p-4 rounded-2xl border-2 transition-all text-left ${
-                        selectedMethod === method.id
-                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="text-2xl mb-2">{method.icon}</div>
-                      <p className="font-bold text-gray-900 dark:text-white">{method.name}</p>
-                      <p className="text-xs text-gray-500">{method.description}</p>
-                    </button>
-                  ))}
+                  {paymentMethods.map((method) => {
+                    const IconComponent = method.icon;
+                    return (
+                      <button
+                        key={method.id}
+                        onClick={() => setSelectedMethod(method.id)}
+                        className={`p-4 rounded-xl border-2 transition-all text-left group hover:shadow-md ${
+                          selectedMethod === method.id
+                            ? 'border-green-500 bg-green-50 dark:bg-green-900/20 shadow-md'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                        }`}
+                      >
+                        <div className={`p-2 rounded-lg w-fit mb-2 transition-colors ${
+                          selectedMethod === method.id ? method.bgColor : 'bg-gray-100 dark:bg-gray-800'
+                        }`}>
+                          <IconComponent 
+                            size={24} 
+                            className={selectedMethod === method.id ? method.color : 'text-gray-500 dark:text-gray-400'}
+                          />
+                        </div>
+                        <p className="font-bold text-gray-900 dark:text-white text-sm">{method.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{method.description}</p>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               {/* Cash Notice */}
               {selectedMethod === 'cash' && (
-                <div className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-4 border border-amber-200 dark:border-amber-800">
+                <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 border border-amber-200 dark:border-amber-800">
                   <div className="flex items-start gap-3">
-                    <AlertTriangle size={24} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div className="p-1.5 bg-amber-100 dark:bg-amber-900/40 rounded-lg">
+                      <AlertTriangle size={20} className="text-amber-600 dark:text-amber-500 flex-shrink-0" />
+                    </div>
                     <div>
-                      <p className="font-bold text-amber-700 dark:text-amber-400">Cash on Pickup</p>
-                      <p className="text-sm text-amber-600 dark:text-amber-500">
+                      <p className="font-bold text-amber-800 dark:text-amber-300 text-sm">Cash on Pickup</p>
+                      <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
                         Please pay ₹{order.total.toFixed(2)} when you collect your order
                       </p>
                     </div>
@@ -211,18 +263,18 @@ const PaymentModal = ({ order, onClose, onPaymentComplete }: PaymentModalProps) 
             <>
               {/* QR Code Payment View */}
               <div className="text-center">
-                <h3 className="font-black text-2xl text-gray-900 dark:text-white mb-2">Scan to Pay</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                <h3 className="font-bold text-xl text-gray-900 dark:text-white mb-1">Scan to Pay</h3>
+                <p className="text-gray-600 dark:text-gray-400 text-sm mb-5">
                   Scan this QR code with any UPI app to complete payment
                 </p>
 
                 {/* QR Code Container */}
-                <div className="bg-white p-8 rounded-3xl shadow-2xl mx-auto w-fit mb-6">
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-2xl border-4 border-green-500">
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/50 p-6 rounded-xl shadow-lg mx-auto w-fit mb-5 border border-gray-200 dark:border-gray-700">
+                  <div className="bg-white p-4 rounded-lg border-2 border-green-500">
                     {/* QR Code SVG - Using a simple generator approach */}
-                    <div className="w-64 h-64 bg-white rounded-xl flex items-center justify-center overflow-hidden">
+                    <div className="w-48 h-48 bg-white rounded flex items-center justify-center overflow-hidden">
                       <img 
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(upiString)}&bgcolor=ffffff&color=000000&qzone=1&format=svg`}
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=192x192&data=${encodeURIComponent(upiString)}&bgcolor=ffffff&color=000000&qzone=1&format=svg`}
                         alt="Payment QR Code"
                         className="w-full h-full"
                       />
@@ -231,25 +283,30 @@ const PaymentModal = ({ order, onClose, onPaymentComplete }: PaymentModalProps) 
                 </div>
 
                 {/* Payment Amount */}
-                <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl p-6 mb-4">
-                  <p className="text-sm font-medium mb-1">Amount to Pay</p>
-                  <p className="text-5xl font-black">₹{order.total.toFixed(2)}</p>
+                <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl p-5 mb-4">
+                  <p className="text-xs font-medium mb-1 opacity-90">Amount to Pay</p>
+                  <p className="text-3xl font-bold">₹{order.total.toFixed(2)}</p>
                 </div>
 
                 {/* UPI ID */}
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">UPI ID</p>
-                  <p className="font-mono font-bold text-gray-900 dark:text-white">{upiId}</p>
+                  <p className="font-mono text-sm font-semibold text-gray-900 dark:text-white">{upiId}</p>
                 </div>
 
                 {/* Instructions */}
-                <div className="mt-6 text-left bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-4 border border-blue-200 dark:border-blue-800">
-                  <p className="font-bold text-blue-900 dark:text-blue-100 mb-2">📱 How to pay:</p>
-                  <ol className="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-decimal list-inside">
+                <div className="mt-5 text-left bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-1.5 bg-blue-100 dark:bg-blue-900/40 rounded-lg">
+                      <Smartphone size={16} className="text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <p className="font-bold text-blue-900 dark:text-blue-100 text-sm">How to pay:</p>
+                  </div>
+                  <ol className="text-xs text-blue-700 dark:text-blue-300 space-y-1.5 list-decimal list-inside ml-1">
                     <li>Open any UPI app (GPay, PhonePe, Paytm, etc.)</li>
                     <li>Scan the QR code above</li>
                     <li>Verify the amount and complete payment</li>
-                    <li>Click "I've Paid" button below after payment</li>
+                    <li>Click "I've Completed Payment" button below</li>
                   </ol>
                 </div>
 
@@ -258,16 +315,16 @@ const PaymentModal = ({ order, onClose, onPaymentComplete }: PaymentModalProps) 
                   onClick={() => {
                     onPaymentComplete(order.id, 'upi');
                   }}
-                  className="w-full mt-6 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all"
+                  className="w-full mt-5 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
                 >
-                  <Check size={24} />
+                  <Check size={20} />
                   I've Completed Payment
                 </button>
 
                 {/* Back Button */}
                 <button
                   onClick={() => setShowQRCode(false)}
-                  className="w-full mt-3 py-3 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-bold transition-colors"
+                  className="w-full mt-2.5 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-semibold text-sm transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   ← Choose Different Method
                 </button>
@@ -276,20 +333,20 @@ const PaymentModal = ({ order, onClose, onPaymentComplete }: PaymentModalProps) 
           )}
         </div>        {/* Action Buttons */}
         {!showQRCode && (
-          <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 p-5 bg-gray-50 dark:bg-gray-800">
+          <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
             <button
               onClick={handlePayment}
               disabled={isProcessing}
-              className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+              className="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
             >
               {isProcessing ? (
                 <>
-                  <RefreshCw size={24} className="animate-spin" />
+                  <RefreshCw size={20} className="animate-spin" />
                   Processing...
                 </>
               ) : (
                 <>
-                  <Check size={24} />
+                  <Check size={20} />
                   {selectedMethod === 'cash' ? 'Confirm Cash on Pickup' : selectedMethod === 'upi' ? 'Show QR Code' : `Pay ₹${order.total.toFixed(2)}`}
                 </>
               )}
