@@ -292,15 +292,88 @@ const NewOrderPopup = ({ order, onAccept, onDecline, onClose }: NewOrderPopupPro
 };
 
 // =====================================================
+// COMPACT PENDING ORDER CARD - Shows in grid, click to expand
+// =====================================================
+interface PendingOrderCardProps {
+  order: Order;
+  onClick: () => void;
+}
+
+const PendingOrderCard = ({ order, onClick }: PendingOrderCardProps) => {
+  const orderDate = new Date(order.createdAt);
+  const timeAgo = getTimeAgo(orderDate);
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full p-4 bg-white dark:bg-gray-800 hover:bg-orange-50 dark:hover:bg-orange-900/10 rounded-xl border-2 border-orange-400 dark:border-orange-600 hover:border-orange-500 transition-all shadow-md hover:shadow-lg group"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center animate-pulse">
+            <Bell size={16} className="text-white" />
+          </div>
+          <div className="text-left">
+            <p className="font-bold text-gray-900 dark:text-white text-sm">#{order.id}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{timeAgo}</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-gray-500 dark:text-gray-400">Total</p>
+          <p className="font-bold text-green-600 dark:text-green-500 text-lg">₹{order.total.toFixed(0)}</p>
+        </div>
+      </div>
+
+      {/* Customer */}
+      <div className="flex items-center gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+          {(order.studentName || order.customerName || 'C').charAt(0).toUpperCase()}
+        </div>
+        <div className="flex-1 text-left min-w-0">
+          <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">
+            {order.studentName || order.customerName || 'Customer'}
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {order.items.length} item{order.items.length !== 1 ? 's' : ''} • {order.deliveryType === 'pickup' ? 'Pickup' : 'Delivery'}
+          </p>
+        </div>
+      </div>
+
+      {/* Quick Items Preview */}
+      <div className="text-left space-y-1 mb-3">
+        {order.items.slice(0, 2).map((item, idx) => (
+          <div key={idx} className="flex items-center gap-1.5 text-xs">
+            <span className="font-bold text-orange-600 dark:text-orange-500">{item.quantity}×</span>
+            <span className="text-gray-700 dark:text-gray-300 truncate">{item.name}</span>
+          </div>
+        ))}
+        {order.items.length > 2 && (
+          <p className="text-xs text-gray-500 italic">+{order.items.length - 2} more item{order.items.length - 2 !== 1 ? 's' : ''}</p>
+        )}
+      </div>
+
+      {/* Click to view indicator */}
+      <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+        <p className="text-xs text-orange-600 dark:text-orange-500 font-semibold group-hover:text-orange-700 dark:group-hover:text-orange-400 transition-colors">
+          Click to view details →
+        </p>
+      </div>
+    </button>
+  );
+};
+
+// =====================================================
 // PENDING ORDER APPROVAL CARD - Shows full order details for approval
 // =====================================================
 interface PendingOrderApprovalCardProps {
   order: Order;
   onAccept: (orderId: string) => void;
   onDecline: (orderId: string, reason: string) => void;
+  onClose?: () => void;
 }
 
-const PendingOrderApprovalCard = ({ order, onAccept, onDecline }: PendingOrderApprovalCardProps) => {
+const PendingOrderApprovalCard = ({ order, onAccept, onDecline, onClose }: PendingOrderApprovalCardProps) => {
   const [showDeclineReasons, setShowDeclineReasons] = useState(false);
   const [customReason, setCustomReason] = useState('');
   const orderDate = new Date(order.createdAt);
@@ -314,38 +387,48 @@ const PendingOrderApprovalCard = ({ order, onAccept, onDecline }: PendingOrderAp
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-4 border-amber-400 dark:border-amber-600 overflow-hidden">
-      {/* Header with pulsing indicator */}
-      <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-4">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden max-w-2xl mx-auto">
+      {/* Compact Header */}
+      <div className="bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center animate-pulse">
-              <Bell size={24} className="text-white" />
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+              <Bell size={16} className="text-white" />
             </div>
             <div>
-              <h3 className="text-white font-black text-xl">New Order #{order.id}</h3>
-              <p className="text-white/90 text-sm font-medium">{dateStr} at {timeStr}</p>
+              <h3 className="text-white font-bold text-sm">Order #{order.id}</h3>
+              <p className="text-white/75 text-xs">{dateStr} at {timeStr}</p>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-white/80 text-sm font-medium">Order Total</p>
-            <p className="text-white font-black text-2xl">₹{order.total.toFixed(0)}</p>
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <p className="text-white/75 text-xs">Total</p>
+              <p className="text-white font-bold text-lg">₹{order.total.toFixed(0)}</p>
+            </div>
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="w-7 h-7 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors"
+                title="Close"
+              >
+                <X size={18} className="text-white" />
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="p-6">
-        {/* Customer Information */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          {/* Customer Details */}
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-800">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-black text-lg">
+      <div className="p-4 space-y-3">
+        {/* Customer & Delivery Info */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">
                 {(order.studentName || order.customerName || 'C').charAt(0).toUpperCase()}
               </div>
-              <div>
-                <p className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase">Customer</p>
-                <p className="font-black text-gray-900 dark:text-white text-lg">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold">Customer</p>
+                <p className="font-bold text-gray-900 dark:text-white text-sm truncate">
                   {order.studentName || order.customerName || 'Customer'}
                 </p>
               </div>
@@ -353,65 +436,52 @@ const PendingOrderApprovalCard = ({ order, onAccept, onDecline }: PendingOrderAp
             {(order.studentPhone || order.customerPhone) && (
               <a 
                 href={`tel:${order.studentPhone || order.customerPhone}`}
-                className="flex items-center gap-2 p-3 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors font-bold"
+                className="flex items-center gap-1.5 p-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-xs font-semibold"
               >
-                <Phone size={18} />
+                <Phone size={14} />
                 {order.studentPhone || order.customerPhone}
               </a>
             )}
           </div>
 
-          {/* Delivery Information */}
-          <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border-2 border-purple-200 dark:border-purple-800">
-            <div className="space-y-3">
-              <div>
-                <p className="text-xs text-purple-600 dark:text-purple-400 font-bold uppercase mb-1">Delivery Type</p>
-                <div className="flex items-center gap-2">
-                  {order.deliveryType === 'pickup' ? (
-                    <>
-                      <Package size={20} className="text-purple-600" />
-                      <span className="font-black text-gray-900 dark:text-white text-lg">Pickup</span>
-                    </>
-                  ) : (
-                    <>
-                      <Truck size={20} className="text-purple-600" />
-                      <span className="font-black text-gray-900 dark:text-white text-lg">Delivery</span>
-                    </>
-                  )}
-                </div>
-              </div>
-              {order.deliveryAddress && (
-                <div>
-                  <p className="text-xs text-purple-600 dark:text-purple-400 font-bold uppercase mb-1">Address</p>
-                  <div className="flex items-start gap-2">
-                    <MapPin size={16} className="text-purple-600 mt-1 flex-shrink-0" />
-                    <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">{order.deliveryAddress}</p>
-                  </div>
-                </div>
+          <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+            <p className="text-xs text-purple-600 dark:text-purple-400 font-semibold mb-2">Delivery</p>
+            <div className="flex items-center gap-2 mb-2">
+              {order.deliveryType === 'pickup' ? (
+                <>
+                  <Package size={16} className="text-purple-600" />
+                  <span className="font-bold text-gray-900 dark:text-white text-sm">Pickup</span>
+                </>
+              ) : (
+                <>
+                  <Truck size={16} className="text-purple-600" />
+                  <span className="font-bold text-gray-900 dark:text-white text-sm">Delivery</span>
+                </>
               )}
             </div>
+            {order.deliveryAddress && (
+              <div className="flex items-start gap-1.5">
+                <MapPin size={12} className="text-purple-600 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-gray-700 dark:text-gray-300 line-clamp-2">{order.deliveryAddress}</p>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Order Items */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <Utensils size={20} className="text-gray-600 dark:text-gray-400" />
-            <h4 className="font-black text-gray-900 dark:text-white text-lg">Order Items</h4>
-          </div>
-          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 space-y-3">
+        <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+          <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2 flex items-center gap-1.5">
+            <Utensils size={12} />
+            Order Items
+          </p>
+          <div className="space-y-1.5">
             {order.items.map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white font-black text-lg">{item.quantity}</span>
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-900 dark:text-white">{item.name}</p>
-                    <p className="text-sm text-gray-500">₹{(item.subtotal / item.quantity).toFixed(0)} each</p>
-                  </div>
-                </div>
-                <p className="font-black text-gray-900 dark:text-white text-lg">₹{item.subtotal.toFixed(0)}</p>
+              <div key={idx} className="flex items-center justify-between text-xs">
+                <span className="text-gray-700 dark:text-gray-300">
+                  <span className="font-bold text-orange-600 dark:text-orange-500">{item.quantity}×</span> {item.name}
+                  <span className="text-gray-500 ml-1">(₹{(item.subtotal / item.quantity).toFixed(0)} each)</span>
+                </span>
+                <span className="font-bold text-gray-900 dark:text-white">₹{item.subtotal.toFixed(0)}</span>
               </div>
             ))}
           </div>
@@ -419,90 +489,74 @@ const PendingOrderApprovalCard = ({ order, onAccept, onDecline }: PendingOrderAp
 
         {/* Special Instructions */}
         {order.specialInstructions && (
-          <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border-2 border-yellow-200 dark:border-yellow-800">
-            <div className="flex items-start gap-2">
-              <MessageSquare size={20} className="text-yellow-600 mt-1 flex-shrink-0" />
-              <div>
-                <p className="text-xs text-yellow-600 dark:text-yellow-400 font-bold uppercase mb-1">Special Instructions</p>
-                <p className="text-gray-700 dark:text-gray-300 font-medium">{order.specialInstructions}</p>
-              </div>
-            </div>
+          <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+            <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 mb-1 flex items-center gap-1.5">
+              <MessageSquare size={12} />
+              Special Instructions
+            </p>
+            <p className="text-xs text-gray-700 dark:text-gray-300">{order.specialInstructions}</p>
           </div>
         )}        {/* Order Summary */}
-        <div className="mb-6 p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border-2 border-green-300 dark:border-green-700">
-          <h4 className="font-black text-green-800 dark:text-green-300 mb-3">Order Summary</h4>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Items Total</span>
-              <span className="font-bold text-gray-900 dark:text-white">
-                ₹{order.items.reduce((sum, item) => sum + item.subtotal, 0).toFixed(0)}
-              </span>
-            </div>
-            <div className="pt-2 border-t-2 border-green-300 dark:border-green-700 flex justify-between">
-              <span className="font-black text-green-800 dark:text-green-300 text-lg">Order Total</span>
-              <span className="font-black text-green-800 dark:text-green-300 text-2xl">₹{order.total.toFixed(0)}</span>
-            </div>
+        <div className="p-3 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-300 dark:border-green-700">
+          <div className="flex justify-between items-center">
+            <span className="font-bold text-green-800 dark:text-green-300 text-sm">Order Total</span>
+            <span className="font-bold text-green-800 dark:text-green-300 text-lg">₹{order.total.toFixed(0)}</span>
           </div>
         </div>
 
-        {/* Actions */}
+        {/* Actions - Compact */}
         {!showDeclineReasons ? (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="flex gap-2">
             <button
               onClick={() => setShowDeclineReasons(true)}
-              className="py-4 bg-red-500 hover:bg-red-600 text-white rounded-xl font-black text-lg flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
+              className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-red-600 dark:text-red-400 rounded-lg font-semibold text-sm flex items-center justify-center gap-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all border border-gray-200 dark:border-gray-700"
             >
-              <XCircle size={24} />
-              Decline Order
+              <XCircle size={16} />
+              Decline
             </button>
             <button
               onClick={() => onAccept(order.id)}
-              className="py-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl font-black text-lg flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
+              className="flex-[2] py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
             >
-              <Check size={24} />
+              <Check size={16} />
               Accept Order
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
-            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border-2 border-red-200 dark:border-red-800">
-              <p className="text-sm font-bold text-red-800 dark:text-red-300 mb-3">Select a reason to decline:</p>
-              <div className="grid grid-cols-2 gap-2 mb-3">
-                {DECLINE_REASONS.map((reason) => (
-                  <button
-                    key={reason}
-                    onClick={() => handleDecline(reason)}
-                    className="py-3 px-4 bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 rounded-lg font-semibold text-sm hover:bg-red-100 dark:hover:bg-red-900/30 transition-all border border-red-300 dark:border-red-700"
-                  >
-                    {reason}
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={customReason}
-                  onChange={(e) => setCustomReason(e.target.value)}
-                  placeholder="Or type a custom reason..."
-                  className="flex-1 px-4 py-3 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium"
-                />
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Select decline reason:</p>
+            <div className="grid grid-cols-2 gap-2">
+              {DECLINE_REASONS.map((reason) => (
                 <button
-                  onClick={() => customReason && handleDecline(customReason)}
-                  disabled={!customReason}
-                  className="px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  key={reason}
+                  onClick={() => handleDecline(reason)}
+                  className="py-2 px-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg font-medium text-xs hover:bg-red-100 dark:hover:bg-red-900/30 transition-all border border-red-200 dark:border-red-800"
                 >
-                  Send
+                  {reason}
                 </button>
-              </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={customReason}
+                onChange={(e) => setCustomReason(e.target.value)}
+                placeholder="Or type custom reason..."
+                className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+              <button
+                onClick={() => customReason && handleDecline(customReason)}
+                disabled={!customReason}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold text-xs disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-600 transition-colors"
+              >
+                Send
+              </button>
             </div>
             <button
-              onClick={() => {
-                setShowDeclineReasons(false);
-                setCustomReason('');
-              }}
-              className="w-full py-3 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-bold transition-colors"
+              onClick={() => setShowDeclineReasons(false)}
+              className="w-full py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium text-xs transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
             >
-              ← Cancel
+              ← Back
             </button>
           </div>
         )}
@@ -878,6 +932,7 @@ const LiveOrderStream = ({ cafeteriaId }: { cafeteriaId: string }) => {
   const { getOrdersByCafeteria, updateOrderStatus, deleteOrder, orders: contextOrders } = useOrders();
   const [orders, setOrders] = useState<Order[]>([]);
   const [pendingPopup, setPendingPopup] = useState<Order | null>(null);
+  const [selectedPendingOrder, setSelectedPendingOrder] = useState<Order | null>(null);
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
@@ -1138,16 +1193,42 @@ const LiveOrderStream = ({ cafeteriaId }: { cafeteriaId: string }) => {
             </div>
           </div>
 
-          {/* Pending Orders Grid */}
-          <div className="grid grid-cols-1 gap-4">
+          {/* Pending Orders Grid - Compact Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {pendingOrders.map(order => (
-              <PendingOrderApprovalCard
+              <PendingOrderCard
                 key={order.id}
                 order={order}
-                onAccept={handleAcceptOrder}
-                onDecline={handleDeclineOrder}
+                onClick={() => setSelectedPendingOrder(order)}
               />
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Detailed Pending Order Modal */}
+      {selectedPendingOrder && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+            onClick={() => setSelectedPendingOrder(null)} 
+          />
+          
+          {/* Modal Content */}
+          <div className="relative z-10 max-h-[90vh] overflow-y-auto">
+            <PendingOrderApprovalCard
+              order={selectedPendingOrder}
+              onAccept={(orderId) => {
+                handleAcceptOrder(orderId);
+                setSelectedPendingOrder(null);
+              }}
+              onDecline={(orderId, reason) => {
+                handleDeclineOrder(orderId, reason);
+                setSelectedPendingOrder(null);
+              }}
+              onClose={() => setSelectedPendingOrder(null)}
+            />
           </div>
         </div>
       )}
