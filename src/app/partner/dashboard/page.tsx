@@ -51,10 +51,11 @@ import {
   Copy,
   Percent,
   EyeOff,
-  Timer
+  Timer,
+  CreditCard
 } from 'lucide-react';
 
-type TabType = 'overview' | 'analytics' | 'menu' | 'orders' | 'inventory';
+type TabType = 'overview' | 'analytics' | 'menu' | 'orders' | 'inventory' | 'payments';
 
 const PartnerDashboard = () => {
   const router = useRouter();
@@ -417,7 +418,7 @@ const PartnerDashboard = () => {
           <span className="text-sm sm:text-base">Quick Actions</span>
         </h3>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3">
           <button
             onClick={() => router.push('/partner/menu')}
             className="bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-800 hover:border-blue-500 hover:shadow-lg transition-all text-left group"
@@ -458,6 +459,20 @@ const PartnerDashboard = () => {
             </div>
             <h4 className="text-xs sm:text-sm font-black text-gray-900 dark:text-white group-hover:text-purple-600">Analytics</h4>
             <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 hidden sm:block">View insights</p>
+          </button>
+
+          <button
+            onClick={() => router.push('/partner/payment')}
+            className="bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-800 hover:border-emerald-500 hover:shadow-lg transition-all text-left group"
+          >
+            <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+              <div className="p-1.5 sm:p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-md sm:rounded-lg group-hover:scale-110 transition-transform">
+                <DollarSign size={14} className="text-emerald-600 sm:w-[18px] sm:h-[18px]" />
+              </div>
+              <ChevronRight size={14} className="text-gray-400 group-hover:text-emerald-600 sm:w-4 sm:h-4" />
+            </div>
+            <h4 className="text-xs sm:text-sm font-black text-gray-900 dark:text-white group-hover:text-emerald-600">Payments</h4>
+            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 hidden sm:block">QR & History</p>
           </button>
 
           <button
@@ -1043,6 +1058,13 @@ const PartnerDashboard = () => {
 
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               <button
+                onClick={() => router.push('/partner/payment')}
+                className="p-1.5 sm:p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors group"
+                title="Payment Management"
+              >
+                <DollarSign size={16} className="text-emerald-600 dark:text-emerald-400 sm:w-[18px] sm:h-[18px] group-hover:scale-110 transition-transform" />
+              </button>
+              <button
                 onClick={toggleTheme}
                 className="p-1.5 sm:p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
               >
@@ -1173,6 +1195,19 @@ const PartnerDashboard = () => {
                     {getLowStockItems(cafeteria.id).length}
                   </span>
                 )}
+              </div>
+            </button>
+            <button
+              onClick={() => router.push('/partner/payment')}
+              className={`px-3 sm:px-6 py-2 sm:py-3 font-bold text-xs sm:text-base transition-all border-b-2 whitespace-nowrap ${
+                activeTab === 'payments'
+                  ? 'border-red-600 text-red-600 dark:text-red-400'
+                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <CreditCard size={16} className="sm:w-[18px] sm:h-[18px]" />
+                <span className="hidden xs:inline">Payments</span>
               </div>
             </button>
           </div>

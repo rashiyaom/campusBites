@@ -107,6 +107,22 @@ const PaymentModal = ({ order, onClose, onPaymentComplete }: PaymentModalProps) 
   const [selectedMethod, setSelectedMethod] = useState<string>('upi');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showQRCode, setShowQRCode] = useState(false);
+  const [partnerPaymentConfig, setPartnerPaymentConfig] = useState<any>(null);
+
+  // Load partner's payment configuration
+  useEffect(() => {
+    if (order.cafeteriaId) {
+      const savedConfig = localStorage.getItem(`payment_config_${order.cafeteriaId}`);
+      if (savedConfig) {
+        try {
+          const config = JSON.parse(savedConfig);
+          setPartnerPaymentConfig(config);
+        } catch (error) {
+          console.error('Failed to load partner payment config:', error);
+        }
+      }
+    }
+  }, [order.cafeteriaId]);
 
   const paymentMethods = [
     { 
@@ -143,9 +159,10 @@ const PaymentModal = ({ order, onClose, onPaymentComplete }: PaymentModalProps) 
     },
   ];
 
-  // Generate UPI payment string
-  const upiId = 'campusbites@paytm'; // Replace with actual UPI ID
-  const upiString = `upi://pay?pa=${upiId}&pn=CampusBites&am=${order.total.toFixed(2)}&cu=INR&tn=Order ${order.id}`;
+  // Generate UPI payment string with partner's UPI ID
+  const upiId = partnerPaymentConfig?.upiId || 'campusbites@paytm';
+  const merchantName = partnerPaymentConfig?.merchantName || 'CampusBites';
+  const upiString = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${order.total.toFixed(2)}&cu=INR&tn=Order ${order.id}`;
 
   const handlePayment = async () => {
     if (selectedMethod === 'upi') {

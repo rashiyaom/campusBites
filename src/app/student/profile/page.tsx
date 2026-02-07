@@ -30,6 +30,7 @@ import {
   Home
 } from 'lucide-react';
 import { useStudentAuth } from '@/contexts/StudentAuthContext';
+import { useOrders } from '@/contexts/OrderContext';
 
 /* --- CUSTOM CSS --- */
 const ProfileStyles = () => (
@@ -110,9 +111,58 @@ const StatCard: React.FC<StatCardProps> = ({ icon: Icon, label, value, color }) 
 const CampusBiteProfile = () => {
   const router = useRouter();
   const { student, isAuthenticated, logout } = useStudentAuth();
+  const { orders } = useOrders();
   const [isDark, setIsDark] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  
+  // Calculate real stats from orders
+  const studentOrders = orders.filter(order => 
+    order.studentEmail === student?.email || order.customerName === student?.name
+  );
+  const totalOrders = studentOrders.length;
+  const completedOrders = studentOrders.filter(order => order.status === 'completed').length;
+  const totalSpent = studentOrders
+    .filter(order => order.status === 'completed')
+    .reduce((sum, order) => sum + order.total, 0);
+  
+  // Calculate this month's spending
+  const now = new Date();
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const thisMonthSpent = studentOrders
+    .filter(order => {
+      const orderDate = new Date(order.createdAt);
+      return orderDate >= firstDayOfMonth && order.status === 'completed';
+    })
+    .reduce((sum, order) => sum + order.total, 0);
+  
+  // Calculate average wait time from estimatedTime (e.g., "15-20 mins")
+  const completedOrdersWithTime = studentOrders.filter(order => 
+    order.status === 'completed' && order.estimatedTime
+  );
+  const avgWaitTime = completedOrdersWithTime.length > 0
+    ? Math.round(
+        completedOrdersWithTime.reduce((sum, order) => {
+          // Extract number from "15-20 mins" format
+          const timeMatch = order.estimatedTime.match(/(\d+)/);
+          return sum + (timeMatch ? parseInt(timeMatch[1]) : 0);
+        }, 0) / completedOrdersWithTime.length
+      )
+    : 0;
+  
+  // Calculate points (100 points per completed order)
+  const bitePoints = completedOrders * 100;
+  
+  // Determine level based on completed orders
+  const getFoodieLevel = (orders: number) => {
+    if (orders >= 50) return 'Platinum Chef';
+    if (orders >= 30) return 'Gold Foodie';
+    if (orders >= 15) return 'Silver Taster';
+    if (orders >= 5) return 'Bronze Nibbler';
+    return 'Newbie Foodie';
+  };
+  
+  const foodieLevel = getFoodieLevel(completedOrders);
   
   // User Data from context - Initialize with safe defaults
   const [userData, setUserData] = useState({
@@ -123,14 +173,14 @@ const CampusBiteProfile = () => {
     institute: student?.institute || "West State University",
     dept: student?.department || "Not specified",
     id: student?.studentId || "GUEST-000",
-    bio: "Caffeine dependent life form. Engineering major. Will code for pizza.",
+    bio: "Food lover exploring campus cuisines 🍕",
     avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${student?.name || 'Guest'}`,
-    level: "Gold Foodie",
-    points: 2450,
-    orders: 42
+    level: foodieLevel,
+    points: bitePoints,
+    orders: totalOrders
   });
 
-  // Update userData when student data loads
+  // Update userData when student data loads or orders change
   useEffect(() => {
     if (student) {
       setUserData({
@@ -141,20 +191,25 @@ const CampusBiteProfile = () => {
         institute: student.institute || "West State University",
         dept: student.department || "Not specified",
         id: student.studentId,
-        bio: "Caffeine dependent life form. Engineering major. Will code for pizza.",
+        bio: "Food lover exploring campus cuisines 🍕",
         avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${student.name}`,
-        level: "Gold Foodie",
-        points: 2450,
-        orders: 42
+        level: foodieLevel,
+        points: bitePoints,
+        orders: totalOrders
       });
     }
-  }, [student]);
+  }, [student, totalOrders, bitePoints, foodieLevel]);
 
   // Redirect if not authenticated
   useEffect(() => {
-    if (!isAuthenticated || !student) {
-      router.push('/student/login');
-    }
+    // Don't redirect immediately - give time for auth context to load from localStorage
+    const timer = setTimeout(() => {
+      if (!isAuthenticated || !student) {
+        router.push('/student/login');
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, [isAuthenticated, student, router]);
 
   // Dark mode setup
@@ -361,9 +416,24 @@ const CampusBiteProfile = () => {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-               <StatCard icon={Pizza} label="Fav Food" value="Burgers" color="bg-orange-500 text-orange-500" />
-               <StatCard icon={Clock} label="Avg Wait" value="12m" color="bg-blue-500 text-blue-500" />
-               <StatCard icon={TrendingUp} label="This Month" value="₹11,786" color="bg-green-500 text-green-500" />
+               <StatCard 
+                 icon={TrendingUp} 
+                 label="Total Spent" 
+                 value={`₹${totalSpent.toFixed(0)}`} 
+                 color="bg-orange-500 text-orange-500" 
+               />
+               <StatCard 
+                 icon={Clock} 
+                 label="Avg Wait" 
+                 value={avgWaitTime > 0 ? `${avgWaitTime}m` : 'N/A'} 
+                 color="bg-blue-500 text-blue-500" 
+               />
+               <StatCard 
+                 icon={Pizza} 
+                 label="This Month" 
+                 value={`₹${thisMonthSpent.toFixed(0)}`} 
+                 color="bg-green-500 text-green-500" 
+               />
             </div>
 
             {/* DETAILS FORM */}

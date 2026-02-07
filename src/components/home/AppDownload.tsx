@@ -21,15 +21,15 @@ const AppDownload = memo(() => {
             <button className="bg-gray-900 text-white px-8 py-4 rounded-2xl font-bold hover:bg-gray-800 transition-all hover:scale-105 flex items-center gap-3 shadow-2xl">
               <Apple size={28} strokeWidth={2.5} />
               <div className="text-left leading-tight">
-                <div className="text-[10px] font-medium uppercase text-gray-400">Download on the</div>
-                <div className="text-lg">App Store</div>
+                <div className="text-[10px] font-medium uppercase text-gray-400">Coming Soon on</div>
+                <div className="text-lg">iOS Devices</div>
               </div>
             </button>
             <button className="bg-gray-900 text-white px-8 py-4 rounded-2xl font-bold hover:bg-gray-800 transition-all hover:scale-105 flex items-center gap-3 shadow-2xl">
               <Smartphone size={24} strokeWidth={2.5} />
               <div className="text-left leading-tight">
-                <div className="text-[10px] font-medium uppercase text-gray-400">Get it on</div>
-                <div className="text-lg">Google Play</div>
+                <div className="text-[10px] font-medium uppercase text-gray-400">Coming Soon on</div>
+                <div className="text-lg">Android</div>
               </div>
             </button>
           </div>

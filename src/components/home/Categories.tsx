@@ -2,15 +2,27 @@
 
 import React, { memo } from 'react';
 import { TrendingUp, ArrowRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import ScrollReveal from '@/components/ui/ScrollReveal';
 
 const Categories = memo(() => {
+  const router = useRouter();
+  
   const categories = [
     { name: "Burgers", count: "12 Places", img: "https://images.unsplash.com/photo-1571091718767-18b5b1457add?auto=format&fit=crop&w=600&q=80", color: "from-orange-400 to-red-500" },
     { name: "Pizza", count: "8 Places", img: "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600&q=80", color: "from-yellow-400 to-orange-500" },
     { name: "Healthy", count: "15 Options", img: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80", color: "from-green-400 to-emerald-600" },
     { name: "Coffee", count: "5 Cafes", img: "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=600&q=80", color: "from-brown-400 to-stone-600" },
   ];
+
+  const handleCategoryClick = (categoryName: string) => {
+    // Navigate to bite page (menu page) with category filter
+    router.push(`/bite?category=${encodeURIComponent(categoryName)}`);
+  };
+
+  const handleViewAllClick = () => {
+    router.push('/bite');
+  };
 
   return (
     <section className="py-24 bg-gray-50 dark:bg-gray-950 transition-colors duration-500">
@@ -24,16 +36,22 @@ const Categories = memo(() => {
               </div>
               <h2 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white">Popular Categories</h2>
             </div>
-            <a href="#" className="hidden md:flex items-center gap-2 text-gray-900 dark:text-white font-bold hover:text-red-500 transition-all group">
+            <button 
+              onClick={handleViewAllClick}
+              className="hidden md:flex items-center gap-2 text-gray-900 dark:text-white font-bold hover:text-red-500 transition-all group"
+            >
               View Full Menu <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-            </a>
+            </button>
           </div>
         </ScrollReveal>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
           {categories.map((cat, i) => (
             <ScrollReveal key={i} delay={i * 100}>
-              <div className="group relative h-80 rounded-[2rem] overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
+              <div 
+                onClick={() => handleCategoryClick(cat.name)}
+                className="group relative h-80 rounded-[2rem] overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+              >
                 <img 
                   src={cat.img} 
                   alt={cat.name} 
