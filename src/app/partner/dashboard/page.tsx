@@ -52,8 +52,11 @@ import {
   Percent,
   EyeOff,
   Timer,
-  CreditCard
+  CreditCard,
+  Download,
+  FileSpreadsheet
 } from 'lucide-react';
+import { exportToExcel } from '@/lib/excelExport';
 
 type TabType = 'overview' | 'analytics' | 'menu' | 'orders' | 'inventory' | 'payments';
 
@@ -340,6 +343,31 @@ const PartnerDashboard = () => {
     alert(`Printing ${ordersToPrint.length} orders...`);
   };
 
+  // ========== EXPORT TO EXCEL ==========
+  const handleExportToExcel = () => {
+    if (!cafeteria) return;
+    
+    try {
+      const analytics = getAnalytics(cafeteria.id, analyticsTimeRange);
+      
+      exportToExcel({
+        cafeteriaName: cafeteria.name,
+        orders: orders,
+        menuItems: menuItems,
+        analytics: analytics,
+        timeRange: analyticsTimeRange
+      });
+      
+      // Show success message
+      setTimeout(() => {
+        alert('✅ Excel report generated successfully! Check your downloads folder.');
+      }, 100);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('❌ Failed to export data. Please try again.');
+    }
+  };
+
   // ========== OVERVIEW TAB ==========
   const renderOverviewTab = () => (
     <>
@@ -617,26 +645,39 @@ const PartnerDashboard = () => {
 
     return (
       <div className="space-y-4 sm:space-y-6">
-        {/* Header with Time Range Selector */}
+        {/* Header with Time Range Selector and Export Button */}
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center justify-between">
           <div>
             <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">Sales Analytics</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Track your performance and growth</p>
           </div>
           <div className="flex gap-2">
-            {[7, 14, 30].map(days => (
-              <button
-                key={days}
-                onClick={() => setAnalyticsTimeRange(days)}
-                className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all ${
-                  analyticsTimeRange === days
-                    ? 'bg-red-600 text-white'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                }`}
-              >
-                {days}d
-              </button>
-            ))}
+            {/* Time Range Selector */}
+            <div className="flex gap-2">
+              {[7, 14, 30].map(days => (
+                <button
+                  key={days}
+                  onClick={() => setAnalyticsTimeRange(days)}
+                  className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all ${
+                    analyticsTimeRange === days
+                      ? 'bg-red-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  {days}d
+                </button>
+              ))}
+            </div>
+            
+            {/* Export to Excel Button */}
+            <button
+              onClick={handleExportToExcel}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold rounded-lg transition-all shadow-lg shadow-green-500/20 hover:shadow-green-500/40 hover:scale-105"
+            >
+              <FileSpreadsheet size={18} />
+              <span className="hidden sm:inline">Export to Excel</span>
+              <Download size={16} className="hidden sm:inline" />
+            </button>
           </div>
         </div>
 

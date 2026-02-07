@@ -256,6 +256,54 @@ const PaymentManagementPage = () => {
         {/* Settings Tab */}
         {activeTab === 'settings' && (
           <div className="space-y-6 animate-in fade-in duration-500">
+            {/* Dynamic QR Feature Highlight */}
+            <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-3xl p-[2px] shadow-2xl">
+              <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 sm:p-8">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4">
+                  <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg">
+                    <Zap size={28} className="text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
+                      Dynamic QR Code Generation
+                      <span className="px-3 py-1 bg-green-500 text-white text-xs rounded-full font-bold">ACTIVE</span>
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 mt-1">
+                      Real-time payment QR codes with exact amounts
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="grid sm:grid-cols-3 gap-4">
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                    <div className="text-2xl mb-2">⚡</div>
+                    <h4 className="font-bold text-gray-900 dark:text-white mb-1">Auto-Generated</h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Unique QR for each order with exact amount embedded</p>
+                  </div>
+                  
+                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-4 border border-purple-200 dark:border-purple-800">
+                    <div className="text-2xl mb-2">✓</div>
+                    <h4 className="font-bold text-gray-900 dark:text-white mb-1">Zero Errors</h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Amount pre-filled in UPI apps automatically</p>
+                  </div>
+                  
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-4 border border-green-200 dark:border-green-800">
+                    <div className="text-2xl mb-2">🔒</div>
+                    <h4 className="font-bold text-gray-900 dark:text-white mb-1">Your UPI ID</h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Direct payments to your configured UPI account</p>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    <span className="font-bold text-indigo-600 dark:text-indigo-400">How it works:</span> When students pay, 
+                    the system generates a QR code with your UPI ID (configured below) + exact order amount. Students scan once and the 
+                    amount is already filled in their UPI app! 🎉
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Success Message */}
             {savedSuccess && (
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-2 border-green-400 dark:border-green-600 rounded-2xl p-5 flex items-center gap-4 shadow-lg animate-in slide-in-from-top duration-300">
@@ -275,10 +323,21 @@ const PaymentManagementPage = () => {
                 <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg">
                   <Smartphone size={24} className="text-white" />
                 </div>
-                <div>
-                  <h2 className="text-2xl font-black text-gray-900 dark:text-white">UPI Configuration</h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Set up your primary payment method</p>
+                <div className="flex-1">
+                  <h2 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
+                    UPI Configuration
+                    <span className="px-2 py-0.5 bg-indigo-500 text-white text-xs rounded-full font-bold">Required</span>
+                  </h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Used for dynamic QR code generation</p>
                 </div>
+              </div>
+
+              {/* Info Banner */}
+              <div className="mb-6 bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 border border-blue-200 dark:border-blue-800">
+                <p className="text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
+                  <QrCode size={16} className="flex-shrink-0" />
+                  <span><strong>This UPI ID will be used</strong> to generate payment QR codes with exact amounts for each student order.</span>
+                </p>
               </div>
 
               <div className="space-y-5">
@@ -353,9 +412,27 @@ const PaymentManagementPage = () => {
                 <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl shadow-lg">
                   <QrCode size={24} className="text-white" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <h2 className="text-2xl font-black text-gray-900 dark:text-white">Static QR Code</h2>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Upload a backup payment QR (optional)</p>
+                </div>
+              </div>
+
+              {/* Dynamic QR Info Banner */}
+              <div className="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl p-4 border-2 border-green-200 dark:border-green-800">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-green-500 rounded-lg flex-shrink-0">
+                    <Zap size={20} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-green-900 dark:text-green-100 mb-1 flex items-center gap-2">
+                      ✨ Dynamic QR Codes Enabled!
+                    </h3>
+                    <p className="text-sm text-green-800 dark:text-green-200 leading-relaxed">
+                      Students automatically get <span className="font-bold">unique QR codes with exact payment amounts</span> when they pay. 
+                      This static QR is only a backup - the system will generate dynamic QR codes with your UPI ID above for each order.
+                    </p>
+                  </div>
                 </div>
               </div>
 

@@ -1,7 +1,10 @@
 # 🎯 CampusBites Payment System - Complete Guide
 
 ## Overview
-A fully integrated, dynamic payment management system for CampusBites that allows partners to configure their payment methods and students to pay with auto-generated, amount-specific QR codes.
+A fully integrated, **dynamic payment management system** for CampusBites that allows partners to configure their payment methods and students to pay with **auto-generated, amount-specific QR codes** in real-time.
+
+### 🆕 New: Dynamic QR Code Generation
+The system now generates unique UPI QR codes for each order with the exact payment amount embedded, eliminating manual amount entry and reducing payment errors.
 
 ---
 
@@ -14,12 +17,20 @@ A fully integrated, dynamic payment management system for CampusBites that allow
    - Payment history tracking
    - Transaction analytics
 
-2. **`/src/app/student/orders/page.tsx`** (MODIFIED)
+2. **`/src/app/student/orders/page.tsx`** (MODIFIED) ⭐ **Enhanced with Dynamic QR**
    - Updated PaymentModal to use dynamic partner UPI configurations
-   - Auto-generates QR codes with exact order amounts
+   - **Auto-generates QR codes with exact order amounts using `qrcode` library**
+   - Real-time QR generation with loading states
+   - Copy UPI ID functionality
+   - UPI deep link support for all major apps
 
 3. **`/src/app/partner/dashboard/page.tsx`** (MODIFIED)
    - Added "Payments" quick action button in Quick Actions grid
+
+4. **`DYNAMIC_QR_PAYMENT.md`** (NEW)
+   - Comprehensive documentation for dynamic QR system
+   - Technical implementation details
+   - Security and privacy guidelines
 
 ---
 
@@ -28,10 +39,12 @@ A fully integrated, dynamic payment management system for CampusBites that allow
 ### For Partners (Cafeteria Owners)
 
 #### Payment Settings Tab
-- **Merchant Name Configuration**: Set your cafeteria/business name
+- **Merchant Name Configuration**: Set your cafeteria/business name (appears in UPI apps)
 - **UPI ID Setup**: Configure your UPI ID (e.g., `yourname@paytm`, `yourname@gpay`)
+  - Used for dynamic QR code generation
+  - Payments go directly to your UPI account
 - **GPay Link** (Optional): Add direct GPay payment link
-- **QR Code Upload**: Upload a static UPI QR code image
+- **QR Code Upload**: Upload a static UPI QR code image (legacy support)
 - **Copy UPI ID**: Quick copy button for sharing
 - **Download QR**: Download uploaded QR code
 
@@ -87,11 +100,15 @@ Student Places Order → Order Approved by Partner → Payment Modal Opens
                                                            ↓
                     Fetches: payment_config_{order.cafeteriaId}
                                                            ↓
-                    Generates: upi://pay?pa={UPI_ID}&pn={MERCHANT_NAME}&am={EXACT_AMOUNT}
+            **🆕 DYNAMIC QR GENERATION** using qrcode library
                                                            ↓
-                              QR Code API generates visual QR
+                    Generates: upi://pay?pa={UPI_ID}&pn={MERCHANT_NAME}&am={EXACT_AMOUNT}&cu=INR&tn=Order_{ORDER_ID}
                                                            ↓
-                          Student Scans → Completes Payment
+                    QRCode.toDataURL() generates high-quality QR image
+                                                           ↓
+                    Amount is PRE-FILLED in any UPI app (GPay, PhonePe, Paytm, etc.)
+                                                           ↓
+                          Student Scans → Verifies Amount → Completes Payment
 ```
 
 ### 3. Transaction History
@@ -105,6 +122,63 @@ Order Status Changes → Filters: confirmed/preparing/ready/completed
 
 ---
 
+## 🔄 Dynamic QR Code System
+
+### How It Works
+
+1. **Partner Configuration**
+   - Partner sets up UPI ID in `/partner/payment`
+   - Stored in localStorage: `payment_config_{cafeteriaId}`
+   - Includes: UPI ID, Merchant Name, optional QR upload
+
+2. **Order Placement**
+   - Student adds items to cart and places order
+   - Order includes: total amount, items, cafeteria ID
+   - Status: `pending` → waits for partner approval
+
+3. **Payment Trigger**
+   - Student clicks "Pay Now" on approved order
+   - Payment modal fetches partner's payment config
+   - Constructs UPI payment string with:
+     ```
+     pa: Partner's UPI ID
+     pn: Merchant Name
+     am: Order Total (exact amount)
+     cu: INR (currency)
+     tn: Order_{orderId} (transaction note)
+     ```
+
+4. **QR Generation (Real-time)**
+   ```typescript
+   QRCode.toDataURL(upiString, {
+     width: 300,
+     margin: 2,
+     errorCorrectionLevel: 'H'
+   })
+   ```
+   - Generates high-resolution QR code
+   - Displays loading spinner during generation
+   - Shows QR with order amount prominently
+
+5. **Payment Completion**
+   - Student scans QR with any UPI app
+   - Amount is automatically filled
+   - Student confirms in UPI app
+   - Marks as paid in CampusBites
+   - Order proceeds to preparation
+
+### Benefits of Dynamic QR
+
+✅ **No Manual Entry**: Amount pre-filled automatically
+✅ **Error-Free**: Eliminates wrong amount entry
+✅ **Unique Per Order**: Each QR is order-specific
+✅ **Partner Control**: Uses partner's configured UPI ID
+✅ **Universal**: Works with ALL UPI apps
+✅ **Instant**: Generated on-demand, no API delays
+✅ **Secure**: No payment gateway, direct UPI transfer
+
+---
+
 ## 💾 Data Storage
 
 ### LocalStorage Keys
@@ -114,9 +188,9 @@ Order Status Changes → Filters: confirmed/preparing/ready/completed
 Key: `payment_config_{userId}`
 Value: {
   gpayLink: string,
-  upiId: string,
-  qrCodeUrl: string (base64),
-  merchantName: string
+  upiId: string,              // ⭐ Used for dynamic QR generation
+  qrCodeUrl: string (base64), // Legacy: Static QR upload
+  merchantName: string         // ⭐ Shown in UPI apps
 }
 ```
 

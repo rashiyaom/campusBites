@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useOrders } from '@/contexts/OrderContext';
 import { useStudentAuth } from '@/contexts/StudentAuthContext';
 import { Order, OrderStatus } from '@/types';
+import QRCode from 'qrcode';
 import { 
   Clock, 
   Package, 
@@ -108,6 +109,8 @@ const PaymentModal = ({ order, onClose, onPaymentComplete }: PaymentModalProps) 
   const [isProcessing, setIsProcessing] = useState(false);
   const [showQRCode, setShowQRCode] = useState(false);
   const [partnerPaymentConfig, setPartnerPaymentConfig] = useState<any>(null);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
+  const [isGeneratingQR, setIsGeneratingQR] = useState(false);
 
   // Load partner's payment configuration
   useEffect(() => {
@@ -123,6 +126,35 @@ const PaymentModal = ({ order, onClose, onPaymentComplete }: PaymentModalProps) 
       }
     }
   }, [order.cafeteriaId]);
+
+  // Generate UPI payment string with partner's UPI ID
+  const upiId = partnerPaymentConfig?.upiId || 'campusbites@paytm';
+  const merchantName = partnerPaymentConfig?.merchantName || 'CampusBites';
+  const upiString = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${order.total.toFixed(2)}&cu=INR&tn=Order%20${order.id}`;
+
+  // Generate QR code when showing QR view
+  useEffect(() => {
+    if (showQRCode && !qrCodeDataUrl) {
+      setIsGeneratingQR(true);
+      QRCode.toDataURL(upiString, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        },
+        errorCorrectionLevel: 'H'
+      })
+        .then(url => {
+          setQrCodeDataUrl(url);
+          setIsGeneratingQR(false);
+        })
+        .catch(err => {
+          console.error('Failed to generate QR code:', err);
+          setIsGeneratingQR(false);
+        });
+    }
+  }, [showQRCode, upiString, qrCodeDataUrl]);
 
   const paymentMethods = [
     { 
@@ -158,11 +190,6 @@ const PaymentModal = ({ order, onClose, onPaymentComplete }: PaymentModalProps) 
       bgColor: 'bg-emerald-50 dark:bg-emerald-900/20'
     },
   ];
-
-  // Generate UPI payment string with partner's UPI ID
-  const upiId = partnerPaymentConfig?.upiId || 'campusbites@paytm';
-  const merchantName = partnerPaymentConfig?.merchantName || 'CampusBites';
-  const upiString = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${order.total.toFixed(2)}&cu=INR&tn=Order ${order.id}`;
 
   const handlePayment = async () => {
     if (selectedMethod === 'upi') {
@@ -288,13 +315,24 @@ const PaymentModal = ({ order, onClose, onPaymentComplete }: PaymentModalProps) 
                 {/* QR Code Container */}
                 <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/50 p-6 rounded-xl shadow-lg mx-auto w-fit mb-5 border border-gray-200 dark:border-gray-700">
                   <div className="bg-white p-4 rounded-lg border-2 border-green-500">
-                    {/* QR Code SVG - Using a simple generator approach */}
+                    {/* QR Code - Dynamically Generated */}
                     <div className="w-48 h-48 bg-white rounded flex items-center justify-center overflow-hidden">
-                      <img 
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=192x192&data=${encodeURIComponent(upiString)}&bgcolor=ffffff&color=000000&qzone=1&format=svg`}
-                        alt="Payment QR Code"
-                        className="w-full h-full"
-                      />
+                      {isGeneratingQR ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <RefreshCw size={32} className="text-green-500 animate-spin" />
+                          <p className="text-xs text-gray-500">Generating QR...</p>
+                        </div>
+                      ) : qrCodeDataUrl ? (
+                        <img 
+                          src={qrCodeDataUrl}
+                          alt="Payment QR Code"
+                          className="w-full h-full"
+                        />
+                      ) : (
+                        <div className="text-center p-4">
+                          <p className="text-xs text-red-500">Failed to generate QR code</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -308,7 +346,24 @@ const PaymentModal = ({ order, onClose, onPaymentComplete }: PaymentModalProps) 
                 {/* UPI ID */}
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">UPI ID</p>
-                  <p className="font-mono text-sm font-semibold text-gray-900 dark:text-white">{upiId}</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-mono text-sm font-semibold text-gray-900 dark:text-white">{upiId}</p>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(upiId);
+                        // Could add a toast notification here
+                        const btn = document.activeElement as HTMLButtonElement;
+                        const originalText = btn.textContent;
+                        btn.textContent = '✓ Copied';
+                        setTimeout(() => {
+                          if (btn) btn.textContent = originalText || 'Copy';
+                        }, 2000);
+                      }}
+                      className="px-2 py-1 text-xs bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
+                    >
+                      Copy
+                    </button>
+                  </div>
                 </div>
 
                 {/* Instructions */}

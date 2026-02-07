@@ -161,12 +161,116 @@ size=128x128  // For smaller QR code
 
 ## Dependencies
 
-- **QR Code API**: `https://api.qrserver.com/` (No npm package required)
-- Uses external API for QR generation (consider self-hosted solution for production)
+- **qrcode**: `^1.5.4` (npm package for client-side QR generation)
+- **@types/qrcode**: `^1.5.5` (TypeScript types)
+- Uses local QR generation (no external API dependency)
 
 ## Notes
 
-- QR codes are generated on-the-fly using external API
+- QR codes are generated locally using the `qrcode` library
 - No sensitive payment data is stored
 - Payment confirmation is currently simulated (needs real payment gateway integration)
 - UPI deep links work on all major UPI apps in India
+
+---
+
+# 🆕 Update: UI Clarification (February 7, 2026)
+
+## Enhanced Payment Settings Page
+
+The partner payment settings page has been updated to **clearly communicate** that the system uses **Dynamic QR Code Generation** as the primary payment method.
+
+### Changes Made
+
+#### 1. Dynamic QR Feature Banner
+Added prominent feature banner at top of Payment Settings tab:
+
+**Visual Components:**
+- Gradient bordered card (indigo → purple → pink)
+- "ACTIVE" green badge
+- Three benefit cards:
+  - ⚡ Auto-Generated (unique QR per order)
+  - ✓ Zero Errors (amount pre-filled)
+  - 🔒 Your UPI ID (direct payments)
+- "How it works" explanation
+
+#### 2. UPI Configuration Enhancement
+- Added "Required" badge to section heading
+- Added blue info banner: "This UPI ID will be used to generate payment QR codes"
+- Updated subtitle to clarify: "Used for dynamic QR code generation"
+
+#### 3. Static QR Clarification
+- Added green success banner: "✨ Dynamic QR Codes Enabled!"
+- Clearly states static QR is "only a backup"
+- Explains dynamic QR generation happens automatically
+
+### The Difference
+
+**Static QR (Upload - Optional):**
+- Partner uploads a general QR image
+- Stored as backup option
+- Not used for automatic payments
+
+**Dynamic QR (Active - Primary Method):** ✅
+- System generates unique QR per order
+- Contains: Partner's UPI ID + Exact amount + Order ID
+- Amount automatically filled in student's UPI app
+- Zero manual entry = Zero errors
+
+### Visual Hierarchy
+
+```
+Payment Settings
+├── ⚡ Dynamic QR Feature Banner [NEW]
+│   ├── ACTIVE badge
+│   ├── 3 Benefit Cards
+│   └── How It Works explanation
+├── UPI Configuration [Required]
+│   ├── Info: "Used for dynamic QR generation" [NEW]
+│   ├── Merchant Name input
+│   ├── UPI ID input (Required)
+│   └── GPay Link input (Optional)
+└── Static QR Code [Optional]
+    ├── Success Banner: "Dynamic QR Enabled!" [NEW]
+    ├── Upload section
+    └── Preview section
+```
+
+### Technical Implementation
+
+**Files Modified:**
+- `/src/app/partner/payment/page.tsx`
+  - Added feature highlight section (~45 lines)
+  - Enhanced UPI section headers
+  - Added clarification banners
+
+**No Breaking Changes:**
+- All existing functionality preserved
+- Static QR upload still works
+- Payment history unchanged
+- Backward compatible
+
+### Benefits
+
+**For Partners:**
+- Clear understanding of payment system
+- Know dynamic QR is the main feature
+- Understand static QR is optional backup
+
+**For Students:**
+- Get unique QR codes with exact amounts
+- Fast, error-free UPI payments
+- Works with all UPI apps
+
+**For Platform:**
+- Reduced user confusion
+- Better feature communication
+- Professional, modern UI
+- Clear value proposition
+
+---
+
+**Latest Version**: 2.1  
+**Status**: ✅ Production Ready  
+**Dynamic QR**: ACTIVE  
+**Static QR**: Optional Backup
