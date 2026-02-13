@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useOrders } from '@/contexts/OrderContext';
 import { useStudentAuth } from '@/contexts/StudentAuthContext';
+import { useRealtimeSync } from '@/hooks/useRealtimeSync';
+import { useToast, ToastContainer } from '@/components/ui/Toast';
 import { Order, OrderStatus } from '@/types';
 import QRCode from 'qrcode';
 import { 
@@ -434,11 +436,20 @@ export default function StudentOrdersPage() {
   const router = useRouter();
   const { orders, updateOrderStatus, refreshOrders } = useOrders();
   const { student, isAuthenticated, isLoading } = useStudentAuth();
+  const { toasts, closeToast, success, info } = useToast();
   const [myOrders, setMyOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentOrder, setPaymentOrder] = useState<Order | null>(null);
+  const [lastOrderCount, setLastOrderCount] = useState(0);
+  const [lastSelectedOrderStatus, setLastSelectedOrderStatus] = useState<OrderStatus | null>(null);
+
+  // Real-time sync for orders - automatically refresh when orders change
+  useRealtimeSync(['orders'], async () => {
+    console.log('[StudentOrders] Real-time sync triggered');
+    await refreshOrders();
+  });
 
   // Load student orders - memoized to prevent unnecessary re-renders
   const myOrdersList = React.useMemo(() => {
@@ -458,6 +469,13 @@ export default function StudentOrdersPage() {
   // Update myOrders state when the memoized list changes
   useEffect(() => {
     console.log('[StudentOrders] Orders updated:', myOrdersList.length);
+    
+    // Check for new orders
+    if (lastOrderCount > 0 && myOrdersList.length > lastOrderCount) {
+      info('New order detected! 🎉');
+    }
+    setLastOrderCount(myOrdersList.length);
+    
     setMyOrders(myOrdersList);
 
     // Auto-select the most recent order if none selected or if selected order no longer exists
@@ -465,10 +483,33 @@ export default function StudentOrdersPage() {
       if (!selectedOrder || !myOrdersList.find(o => o.id === selectedOrder.id)) {
         console.log('[StudentOrders] Auto-selecting first order');
         setSelectedOrder(myOrdersList[0]);
+        setLastSelectedOrderStatus(myOrdersList[0].status);
       } else {
         // Update selected order if it changed (status, estimatedTime, etc.)
         const updated = myOrdersList.find(o => o.id === selectedOrder.id);
         if (updated) {
+          // Check if status changed
+          if (lastSelectedOrderStatus && updated.status !== lastSelectedOrderStatus) {
+            console.log('[StudentOrders] Order status changed:', lastSelectedOrderStatus, '→', updated.status);
+            
+            // Show appropriate notification based on status change
+            if (updated.status === 'approved' || updated.status === 'payment_pending') {
+              info('Order approved! Please complete payment 💳');
+            } else if (updated.status === 'confirmed') {
+              success('Payment confirmed! Order is being prepared 👨‍🍳');
+            } else if (updated.status === 'preparing') {
+              info('Your order is being prepared! 🍳');
+            } else if (updated.status === 'ready') {
+              success('Order is ready for pickup! 🎉');
+            } else if (updated.status === 'completed') {
+              success('Order completed! Enjoy your meal! 😋');
+            } else if (updated.status === 'declined') {
+              info('Order was declined by cafeteria');
+            }
+            
+            setLastSelectedOrderStatus(updated.status);
+          }
+          
           // Deep comparison to detect any changes
           const hasChanged = JSON.stringify(updated) !== JSON.stringify(selectedOrder);
           if (hasChanged) {
@@ -479,6 +520,7 @@ export default function StudentOrdersPage() {
       }
     } else {
       setSelectedOrder(null);
+      setLastSelectedOrderStatus(null);
     }
   }, [myOrdersList]);
 
@@ -576,8 +618,10 @@ export default function StudentOrdersPage() {
 
   // Open payment modal
   const openPaymentModal = (order: Order) => {
+    console.log('[StudentOrders] openPaymentModal called with order:', order.id);
     setPaymentOrder(order);
     setShowPaymentModal(true);
+    console.log('[StudentOrders] Modal state set - showPaymentModal: true, paymentOrder:', order.id);
   };
 
   // Get progress percentage for status bar
@@ -603,7 +647,11 @@ export default function StudentOrdersPage() {
   const config = selectedOrder ? statusConfig[selectedOrder.status] : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <>
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onClose={closeToast} />
+      
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Header */}
       <div className="sticky top-0 z-40 backdrop-blur-lg bg-white/70 dark:bg-gray-800/70 border-b border-orange-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -619,7 +667,17 @@ export default function StudentOrdersPage() {
             </div>
             <div>
               <h1 className="text-2xl font-black text-gray-800 dark:text-white">My Orders</h1>
-              <p className="text-sm text-gray-600 dark:text-gray-300">{myOrders.length} total orders</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                {myOrders.length} total orders
+                {/* Real-time sync indicator */}
+                <span className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                  Auto-updating
+                </span>
+              </p>
             </div>
           </div>
           
@@ -770,8 +828,12 @@ export default function StudentOrdersPage() {
                         Complete payment to confirm your order.
                       </p>
                       <button
-                        onClick={() => openPaymentModal(selectedOrder)}
-                        className="w-full py-4 bg-white text-blue-600 rounded-xl font-black text-lg flex items-center justify-center gap-2 hover:shadow-lg transition-all"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          console.log('[StudentOrders] Opening payment modal for order:', selectedOrder.id);
+                          openPaymentModal(selectedOrder);
+                        }}
+                        className="w-full py-4 bg-white text-blue-600 rounded-xl font-black text-lg flex items-center justify-center gap-2 hover:shadow-lg transition-all active:scale-95"
                       >
                         <Wallet size={24} />
                         Pay ₹{selectedOrder.total.toFixed(2)} Now
@@ -892,6 +954,7 @@ export default function StudentOrdersPage() {
           onPaymentComplete={handlePaymentComplete}
         />
       )}
-    </div>
+      </div>
+    </>
   );
 }

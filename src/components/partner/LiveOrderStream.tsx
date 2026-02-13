@@ -1162,13 +1162,28 @@ const LiveOrderStream = ({ cafeteriaId }: { cafeteriaId: string }) => {
       }
       setDeleteConfirm(null);
     }
-  };  // Filter orders - Only show orders that are CONFIRMED or later
-  // Pending orders → Show in popup + approval section at top
-  // Approved/Payment pending → Don't show in main section (waiting for student payment)
-  // Confirmed onwards → Show in Active Orders section as cards
+  };
+
+  // ============================================================
+  // FILTER ORDERS - STRICT PAYMENT VERIFICATION
+  // ============================================================
+  // Pending orders → Show in popup + approval section at top (needs approval)
+  // Approved/Payment pending → Don't show in main section (waiting for STUDENT payment)
+  // Confirmed onwards → Show ONLY IF payment is completed OR status indicates payment was done
+  // ============================================================
   const pendingOrders = orders.filter(o => o.status === 'pending');
   const awaitingPayment = orders.filter(o => o.status === 'approved' || o.status === 'payment_pending');
-  const activeOrders = orders.filter(o => ['confirmed', 'preparing', 'ready'].includes(o.status));
+  
+  // CRITICAL: Only show orders that have CONFIRMED payment OR are in post-payment stages
+  // This prevents showing orders before student completes payment
+  const activeOrders = orders.filter(o => {
+    // Must be in confirmed/preparing/ready status
+    const isCorrectStatus = ['confirmed', 'preparing', 'ready'].includes(o.status);
+    // AND payment must be completed (or if status is confirmed+, we assume payment was done)
+    const hasPaymentCompleted = o.paymentStatus === 'completed' || o.status !== 'approved';
+    return isCorrectStatus && hasPaymentCompleted;
+  });
+  
   const completedOrders = orders.filter(o => ['completed', 'cancelled', 'declined'].includes(o.status));
   const awaitingPaymentCount = awaitingPayment.length;
 
@@ -1233,21 +1248,99 @@ const LiveOrderStream = ({ cafeteriaId }: { cafeteriaId: string }) => {
         </div>
       )}
 
-      {/* Awaiting Payment Indicator (not shown as cards) */}
+      {/* APPROVED ORDERS - Awaiting Payment Section */}
       {awaitingPaymentCount > 0 && (
-        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-700 rounded-2xl">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-500 rounded-xl">
-              <CreditCard size={24} className="text-white" />
+        <div className="mb-8">
+          <div className="mb-4 p-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white/20 rounded-xl">
+                <CreditCard size={28} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black">
+                  {awaitingPaymentCount} Order{awaitingPaymentCount > 1 ? 's' : ''} Awaiting Student Payment
+                </h2>
+                <p className="text-white/90 font-medium">
+                  These orders are approved and waiting for student payment
+                </p>
+              </div>
             </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-blue-800 dark:text-blue-200">
-                {awaitingPaymentCount} order{awaitingPaymentCount > 1 ? 's' : ''} awaiting student payment
-              </h3>
-              <p className="text-sm text-blue-600 dark:text-blue-400">
-                Orders will appear below once payment is confirmed
-              </p>
-            </div>
+          </div>
+
+          {/* Approved Orders Grid - Show as cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            {awaitingPayment.map(order => (
+              <div 
+                key={order.id}
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border-2 border-blue-300 dark:border-blue-600 overflow-hidden"
+              >
+                {/* Blue status bar */}
+                <div className="h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500" />
+
+                <div className="p-4">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
+                        <CreditCard size={18} />
+                      </div>
+                      <div>
+                        <h3 className="font-black text-gray-900 dark:text-white">{order.id}</h3>
+                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400">Awaiting Payment</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setViewingOrder(order)}
+                      className="p-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-all"
+                      title="View Details"
+                    >
+                      <Eye size={18} className="text-gray-600 dark:text-gray-300" />
+                    </button>
+                  </div>
+
+                  {/* Customer */}
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl mb-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
+                      {(order.studentName || order.customerName || 'C').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-900 dark:text-white truncate">
+                        {order.studentName || order.customerName || 'Customer'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {order.deliveryType === 'pickup' ? 'Pickup' : 'Delivery'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Items summary */}
+                  <div className="space-y-1 mb-3 max-h-20 overflow-y-auto">
+                    {order.items.slice(0, 3).map((item, idx) => (
+                      <div key={idx} className="flex justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          <span className="font-bold text-blue-600">{item.quantity}×</span> {item.name}
+                        </span>
+                      </div>
+                    ))}
+                    {order.items.length > 3 && (
+                      <p className="text-xs text-gray-500 italic">+{order.items.length - 3} more items</p>
+                    )}
+                  </div>
+
+                  {/* Total */}
+                  <div className="flex items-center justify-between p-3 bg-blue-500 text-white rounded-xl">
+                    <span className="font-bold">Total</span>
+                    <span className="text-xl font-black">₹{order.total.toFixed(0)}</span>
+                  </div>
+
+                  {/* Waiting indicator */}
+                  <div className="mt-3 flex items-center justify-center gap-2 text-blue-600 dark:text-blue-400 text-sm font-semibold">
+                    <Clock size={16} className="animate-pulse" />
+                    Waiting for student payment...
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

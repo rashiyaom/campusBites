@@ -7,6 +7,8 @@ import { useOrders } from '@/contexts/OrderContext';
 import { useMenu } from '@/contexts/MenuContext';
 import { useInventory } from '@/contexts/InventoryContext';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
+import { useRealtimeSync } from '@/hooks/useRealtimeSync';
+import { useToast, ToastContainer } from '@/components/ui/Toast';
 import { OrderStatus } from '@/types';
 import OrderTimeTracker from '@/components/partner/OrderTimeTracker';
 import DailySalesAnalytics from '@/components/partner/DailySalesAnalytics';
@@ -63,10 +65,11 @@ type TabType = 'overview' | 'analytics' | 'menu' | 'orders' | 'inventory' | 'pay
 const PartnerDashboard = () => {
   const router = useRouter();
   const { user, isAuthenticated, logout, getCafeteria } = useAuth();
-  const { getOrdersByCafeteria, updateOrderStatus, setOrderEstimatedTime, deleteOrder } = useOrders();
+  const { getOrdersByCafeteria, updateOrderStatus, setOrderEstimatedTime, deleteOrder, refreshOrders, orders: allOrders } = useOrders();
   const { getMenuItemsByCafeteria } = useMenu();
   const { getInventoryByCafeteria, getLowStockItems, updateStock, restockItem } = useInventory();
   const { getAnalytics } = useAnalytics();
+  const { toasts, closeToast, success, info } = useToast();
   const cafeteria = getCafeteria();
   const [isDark, setIsDark] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -80,6 +83,13 @@ const PartnerDashboard = () => {
   const [restockQuantity, setRestockQuantity] = useState<Record<string, number>>({});
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [bulkActionMode, setBulkActionMode] = useState(false);
+  const [lastPaidOrdersCount, setLastPaidOrdersCount] = useState(0);
+
+  // Real-time sync for orders - automatically refresh when orders change (e.g., payment completed)
+  useRealtimeSync(['orders'], async () => {
+    console.log('[PartnerDashboard] Real-time sync triggered - refreshing orders');
+    await refreshOrders();
+  });
 
   // Load dashboard state from localStorage on mount
   useEffect(() => {
@@ -192,10 +202,11 @@ const PartnerDashboard = () => {
 
   // Calculate statistics - memoized to prevent unnecessary re-renders
   // MUST be called before early return to follow Rules of Hooks
-  const orders = React.useMemo(() => 
-    cafeteria ? getOrdersByCafeteria(cafeteria.id) : [], 
-    [cafeteria?.id, getOrdersByCafeteria]
-  );
+  const orders = React.useMemo(() => {
+    const cafeteriaOrders = cafeteria ? allOrders.filter(order => order.cafeteriaId === cafeteria.id) : [];
+    console.log('[PartnerDashboard] Orders recalculated:', cafeteriaOrders.length, 'orders for cafeteria:', cafeteria?.id);
+    return cafeteriaOrders;
+  }, [cafeteria?.id, allOrders]);
   
   const menuItems = React.useMemo(() => 
     cafeteria ? getMenuItemsByCafeteria(cafeteria.id) : [], 
@@ -214,9 +225,40 @@ const PartnerDashboard = () => {
     return orderDate.getTime() === today.getTime();
   }), [orders, today]);
 
-  const activeOrders = React.useMemo(() => orders.filter(order => 
-    !['completed', 'cancelled'].includes(order.status)
-  ), [orders]);
+  // Active orders: Only show orders that need action OR have been paid
+  // Exclude 'approved' and 'payment_pending' - these are waiting for STUDENT payment, not partner action
+  const activeOrders = React.useMemo(() => orders.filter(order => {
+    // Show orders that are:
+    // 1. 'pending' - needs partner approval
+    // 2. 'confirmed', 'preparing', 'ready' - paid and in progress
+    // Hide orders that are:
+    // - 'approved', 'payment_pending' - waiting for student payment (not partner's concern yet)
+    // - 'completed', 'cancelled', 'declined' - finished
+    return order.status === 'pending' || 
+           order.status === 'confirmed' || 
+           order.status === 'preparing' || 
+           order.status === 'ready';
+  }), [orders]);
+
+  // Monitor for payment status changes
+  useEffect(() => {
+    if (!cafeteria) return;
+    
+    const paidOrders = orders.filter(order => 
+      order.status === 'confirmed' && order.paymentStatus === 'completed'
+    );
+    
+    console.log('[PartnerDashboard] Payment monitoring - Current paid orders:', paidOrders.length, 'Last count:', lastPaidOrdersCount);
+    
+    // Notify when new payment is received
+    if (lastPaidOrdersCount > 0 && paidOrders.length > lastPaidOrdersCount) {
+      const newPayments = paidOrders.length - lastPaidOrdersCount;
+      console.log('[PartnerDashboard] 🎉 New payment detected!', newPayments, 'payment(s)');
+      success(`${newPayments} new payment${newPayments > 1 ? 's' : ''} received! 💰`);
+    }
+    
+    setLastPaidOrdersCount(paidOrders.length);
+  }, [orders, cafeteria]);
 
   const todayRevenue = React.useMemo(() => todayOrders.reduce((sum, order) => 
     order.status !== 'cancelled' ? sum + order.total : sum, 0
@@ -1080,7 +1122,11 @@ const PartnerDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <>
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onClose={closeToast} />
+      
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
@@ -1093,7 +1139,17 @@ const PartnerDashboard = () => {
                 <h1 className="text-sm sm:text-base font-black text-gray-900 dark:text-white truncate">
                   {cafeteria.name}
                 </h1>
-                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Partner Dashboard</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                  <span className="hidden sm:inline">Partner Dashboard</span>
+                  {/* Real-time sync indicator */}
+                  <span className="flex items-center gap-1">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
+                    </span>
+                    <span className="text-green-600 dark:text-green-400 font-medium hidden sm:inline">Live</span>
+                  </span>
+                </p>
               </div>
             </div>
 
@@ -1274,7 +1330,8 @@ const PartnerDashboard = () => {
           onSetEstimatedTime={setOrderEstimatedTime}
         />
       )}
-    </div>
+      </div>
+    </>
   );
 };
 
