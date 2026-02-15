@@ -10,6 +10,7 @@ import Footer from '@/components/layout/Footer';
 const LiveFeed = lazy(() => import('@/components/home/LiveFeed'));
 const DeliveryMethods = lazy(() => import('@/components/home/DeliveryMethods'));
 const Categories = lazy(() => import('@/components/home/Categories'));
+const StoresSection = lazy(() => import('@/components/home/StoresSection'));
 const PopularItems = lazy(() => import('@/components/home/PopularItems'));
 const AppDownload = lazy(() => import('@/components/home/AppDownload'));
 
@@ -67,6 +68,10 @@ const HomePage = () => {
           
           <Suspense fallback={<SectionLoader />}>
             <Categories />
+          </Suspense>
+          
+          <Suspense fallback={<SectionLoader />}>
+            <StoresSection />
           </Suspense>
           
           <Suspense fallback={<SectionLoader />}>

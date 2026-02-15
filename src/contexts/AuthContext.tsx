@@ -44,18 +44,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Mock authentication
-    const partner = MOCK_PARTNERS.find(
-      p => p.email === credentials.email && p.password === credentials.password
-    );
+    // Check localStorage partners first (seeded data)
+    let partner = null;
+    const savedPartners = localStorage.getItem('partners');
+    if (savedPartners) {
+      try {
+        const partners = JSON.parse(savedPartners);
+        partner = partners.find(
+          (p: any) => p.email === credentials.email && p.password === credentials.password
+        );
+      } catch (error) {
+        console.error('Failed to parse partners:', error);
+      }
+    }
+    
+    // Fallback to MOCK_PARTNERS
+    if (!partner) {
+      partner = MOCK_PARTNERS.find(
+        p => p.email === credentials.email && p.password === credentials.password
+      );
+    }
 
     if (partner) {
       const user: User = {
-        id: partner.cafeteriaId,
+        id: partner.id || partner.cafeteriaId,
         email: partner.email,
         name: partner.name,
         role: 'partner',
-        cafeteriaId: partner.cafeteriaId
+        cafeteriaId: partner.businessId || partner.cafeteriaId
       };
 
       setAuthState({

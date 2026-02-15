@@ -393,15 +393,87 @@ export default function LoginPage() {
                 {/* Demo Accounts Info */}
                 <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 -mt-1">
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Demo Accounts</p>
-                  <div className="space-y-1 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">admin@thegrill.com</span>
+                  <div className="space-y-1 text-xs max-h-40 overflow-y-auto hide-scrollbar">
+                    {/* Food */}
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-gray-600 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+                        admin@thegrill.com
+                      </span>
                       <span className="font-mono text-gray-400">demo123</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">admin@sushicorner.com</span>
+                    {/* Groceries */}
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-gray-600 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                        admin@campusmart.com
+                      </span>
                       <span className="font-mono text-gray-400">demo123</span>
                     </div>
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-gray-600 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                        admin@freshbazaar.com
+                      </span>
+                      <span className="font-mono text-gray-400">demo123</span>
+                    </div>
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-gray-600 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                        admin@quickstop.com
+                      </span>
+                      <span className="font-mono text-gray-400">demo123</span>
+                    </div>
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-gray-600 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                        admin@organiccorner.com
+                      </span>
+                      <span className="font-mono text-gray-400">demo123</span>
+                    </div>
+                    {/* Stationery */}
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-gray-600 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                        admin@penparadise.com
+                      </span>
+                      <span className="font-mono text-gray-400">demo123</span>
+                    </div>
+                    {/* Essentials */}
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-gray-600 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                        admin@dailyneeds.com
+                      </span>
+                      <span className="font-mono text-gray-400">demo123</span>
+                    </div>
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-gray-600 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                        admin@campuscare.com
+                      </span>
+                      <span className="font-mono text-gray-400">demo123</span>
+                    </div>
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-gray-600 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                        admin@hygieneplus.com
+                      </span>
+                      <span className="font-mono text-gray-400">demo123</span>
+                    </div>
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-gray-600 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                        admin@studentstore.com
+                      </span>
+                      <span className="font-mono text-gray-400">demo123</span>
+                    </div>
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-gray-200 grid grid-cols-2 gap-1 text-[9px] text-gray-400">
+                    <span>🍔 1 Food</span>
+                    <span>🛒 4 Grocery</span>
+                    <span>✏️ 1 Stationery</span>
+                    <span>🧴 4 Essentials</span>
                   </div>
                 </div>
 

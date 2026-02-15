@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { CheckCircle, AlertCircle, Info, X } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'info';
@@ -83,21 +83,25 @@ export const ToastContainer: React.FC<{
 export const useToast = () => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  const showToast = (type: ToastType, message: string, duration?: number) => {
+  const showToast = useCallback((type: ToastType, message: string, duration?: number) => {
     const id = `toast-${Date.now()}-${Math.random()}`;
     setToasts(prev => [...prev, { id, type, message, duration }]);
-  };
+  }, []);
 
-  const closeToast = (id: string) => {
+  const closeToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id));
-  };
+  }, []);
+
+  const success = useCallback((message: string, duration?: number) => showToast('success', message, duration), [showToast]);
+  const error = useCallback((message: string, duration?: number) => showToast('error', message, duration), [showToast]);
+  const info = useCallback((message: string, duration?: number) => showToast('info', message, duration), [showToast]);
 
   return {
     toasts,
     showToast,
     closeToast,
-    success: (message: string, duration?: number) => showToast('success', message, duration),
-    error: (message: string, duration?: number) => showToast('error', message, duration),
-    info: (message: string, duration?: number) => showToast('info', message, duration),
+    success,
+    error,
+    info,
   };
 };

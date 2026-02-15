@@ -437,13 +437,15 @@ export default function StudentOrdersPage() {
   const { orders, updateOrderStatus, refreshOrders } = useOrders();
   const { student, isAuthenticated, isLoading } = useStudentAuth();
   const { toasts, closeToast, success, info } = useToast();
-  const [myOrders, setMyOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentOrder, setPaymentOrder] = useState<Order | null>(null);
-  const [lastOrderCount, setLastOrderCount] = useState(0);
-  const [lastSelectedOrderStatus, setLastSelectedOrderStatus] = useState<OrderStatus | null>(null);
+  
+  // Use refs to track values without causing re-renders
+  const lastOrderCountRef = React.useRef(0);
+  const lastSelectedOrderStatusRef = React.useRef<OrderStatus | null>(null);
+  const hasShownNotificationRef = React.useRef(false);
 
   // Real-time sync for orders - automatically refresh when orders change
   useRealtimeSync(['orders'], async () => {
@@ -452,7 +454,7 @@ export default function StudentOrdersPage() {
   });
 
   // Load student orders - memoized to prevent unnecessary re-renders
-  const myOrdersList = React.useMemo(() => {
+  const myOrders = React.useMemo(() => {
     if (!student) return [];
     
     // Filter orders for this student - show ALL orders including pending
@@ -466,63 +468,77 @@ export default function StudentOrdersPage() {
     );
   }, [orders, student]);
 
-  // Update myOrders state when the memoized list changes
+  // Handle order notifications and auto-selection
+  // Using refs for toast functions to avoid dependency issues
+  const infoRef = React.useRef(info);
+  const successRef = React.useRef(success);
+  
   useEffect(() => {
-    console.log('[StudentOrders] Orders updated:', myOrdersList.length);
+    infoRef.current = info;
+    successRef.current = success;
+  }, [info, success]);
+
+  useEffect(() => {
+    console.log('[StudentOrders] Orders updated:', myOrders.length);
     
-    // Check for new orders
-    if (lastOrderCount > 0 && myOrdersList.length > lastOrderCount) {
-      info('New order detected! 🎉');
+    // Check for new orders using ref
+    if (lastOrderCountRef.current > 0 && myOrders.length > lastOrderCountRef.current && !hasShownNotificationRef.current) {
+      infoRef.current('New order detected! 🎉');
+      hasShownNotificationRef.current = true;
+      setTimeout(() => {
+        hasShownNotificationRef.current = false;
+      }, 1000);
     }
-    setLastOrderCount(myOrdersList.length);
     
-    setMyOrders(myOrdersList);
+    // Update order count ref
+    lastOrderCountRef.current = myOrders.length;
 
     // Auto-select the most recent order if none selected or if selected order no longer exists
-    if (myOrdersList.length > 0) {
-      if (!selectedOrder || !myOrdersList.find(o => o.id === selectedOrder.id)) {
+    if (myOrders.length > 0) {
+      const currentSelectedId = selectedOrder?.id;
+      const currentOrderInList = currentSelectedId ? myOrders.find(o => o.id === currentSelectedId) : null;
+      
+      if (!currentSelectedId || !currentOrderInList) {
         console.log('[StudentOrders] Auto-selecting first order');
-        setSelectedOrder(myOrdersList[0]);
-        setLastSelectedOrderStatus(myOrdersList[0].status);
-      } else {
-        // Update selected order if it changed (status, estimatedTime, etc.)
-        const updated = myOrdersList.find(o => o.id === selectedOrder.id);
-        if (updated) {
-          // Check if status changed
-          if (lastSelectedOrderStatus && updated.status !== lastSelectedOrderStatus) {
-            console.log('[StudentOrders] Order status changed:', lastSelectedOrderStatus, '→', updated.status);
-            
-            // Show appropriate notification based on status change
-            if (updated.status === 'approved' || updated.status === 'payment_pending') {
-              info('Order approved! Please complete payment 💳');
-            } else if (updated.status === 'confirmed') {
-              success('Payment confirmed! Order is being prepared 👨‍🍳');
-            } else if (updated.status === 'preparing') {
-              info('Your order is being prepared! 🍳');
-            } else if (updated.status === 'ready') {
-              success('Order is ready for pickup! 🎉');
-            } else if (updated.status === 'completed') {
-              success('Order completed! Enjoy your meal! 😋');
-            } else if (updated.status === 'declined') {
-              info('Order was declined by cafeteria');
-            }
-            
-            setLastSelectedOrderStatus(updated.status);
+        const firstOrder = myOrders[0];
+        setSelectedOrder(firstOrder);
+        lastSelectedOrderStatusRef.current = firstOrder.status;
+      } else if (currentOrderInList) {
+        // Check if status changed using ref
+        if (lastSelectedOrderStatusRef.current && currentOrderInList.status !== lastSelectedOrderStatusRef.current) {
+          console.log('[StudentOrders] Order status changed:', lastSelectedOrderStatusRef.current, '→', currentOrderInList.status);
+          
+          // Show appropriate notification based on status change
+          if (currentOrderInList.status === 'approved' || currentOrderInList.status === 'payment_pending') {
+            infoRef.current('Order approved! Please complete payment 💳');
+          } else if (currentOrderInList.status === 'confirmed') {
+            successRef.current('Payment confirmed! Order is being prepared 👨‍🍳');
+          } else if (currentOrderInList.status === 'preparing') {
+            infoRef.current('Your order is being prepared! 🍳');
+          } else if (currentOrderInList.status === 'ready') {
+            successRef.current('Order is ready for pickup! 🎉');
+          } else if (currentOrderInList.status === 'completed') {
+            successRef.current('Order completed! Enjoy your meal! 😋');
+          } else if (currentOrderInList.status === 'declined') {
+            infoRef.current('Order was declined by cafeteria');
           }
           
-          // Deep comparison to detect any changes
-          const hasChanged = JSON.stringify(updated) !== JSON.stringify(selectedOrder);
-          if (hasChanged) {
-            console.log('[StudentOrders] Selected order updated, refreshing:', updated.status);
-            setSelectedOrder(updated);
-          }
+          lastSelectedOrderStatusRef.current = currentOrderInList.status;
+        }
+        
+        // Update selected order only if status or other critical fields changed
+        // Avoid deep comparison which can cause issues
+        if (selectedOrder?.status !== currentOrderInList.status ||
+            selectedOrder?.paymentStatus !== currentOrderInList.paymentStatus) {
+          console.log('[StudentOrders] Selected order updated, refreshing:', currentOrderInList.status);
+          setSelectedOrder(currentOrderInList);
         }
       }
-    } else {
+    } else if (selectedOrder) {
       setSelectedOrder(null);
-      setLastSelectedOrderStatus(null);
+      lastSelectedOrderStatusRef.current = null;
     }
-  }, [myOrdersList]);
+  }, [myOrders, selectedOrder?.id, selectedOrder?.status, selectedOrder?.paymentStatus]);
 
   // Listen for localStorage changes from other tabs (partner dashboard)
   useEffect(() => {
@@ -565,19 +581,11 @@ export default function StudentOrdersPage() {
       await refreshOrders();
       console.log('[StudentOrders] Orders refreshed from storage');
       
-      // Update myOrders with the latest data
+      // Orders will be automatically updated via the useMemo hook
       setTimeout(() => {
-        const studentOrders = orders.filter(
-          order => order.studentEmail === student?.email || order.studentId === student?.studentId
-        );
-        const sortedOrders = studentOrders.sort((a, b) => 
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-        setMyOrders(sortedOrders);
-        
         // Update selected order if it exists
         if (selectedOrder) {
-          const updated = sortedOrders.find(o => o.id === selectedOrder.id);
+          const updated = myOrders.find(o => o.id === selectedOrder.id);
           if (updated) {
             setSelectedOrder(updated);
             console.log('[StudentOrders] Selected order updated after refresh');
@@ -595,13 +603,7 @@ export default function StudentOrdersPage() {
   const handlePaymentComplete = (orderId: string, method: string) => {
     updateOrderStatus(orderId, 'confirmed');
     
-    // Update local order with payment info
-    setMyOrders(prev => prev.map(order => 
-      order.id === orderId 
-        ? { ...order, status: 'confirmed' as OrderStatus, paymentStatus: 'completed' as const, paymentMethod: method as any, paidAt: new Date() }
-        : order
-    ));
-
+    // Update selected order with payment info
     if (selectedOrder?.id === orderId) {
       setSelectedOrder(prev => prev ? { 
         ...prev, 

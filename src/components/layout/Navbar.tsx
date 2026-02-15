@@ -56,7 +56,7 @@ const Navbar: React.FC<NavbarProps> = ({ isDark, toggleTheme }) => {
         
         <div className="hidden md:flex items-center gap-6 font-medium text-gray-700 dark:text-gray-300">
           <Link href="/order" className="hover:text-red-500 transition-colors">Cafeterias</Link>
-          <Link href="/bite" className="hover:text-red-500 transition-colors">Bite</Link>
+          <Link href="/stores" className="hover:text-red-500 transition-colors">Store</Link>
           <a href="#" className="hover:text-red-500 transition-colors">Delivery Map</a>
           
           {isAuthenticated && student && (
@@ -82,7 +82,7 @@ const Navbar: React.FC<NavbarProps> = ({ isDark, toggleTheme }) => {
           
           {/* Cart Icon */}
           <Link
-            href="/bite"
+            href="/stores"
             className="relative p-2.5 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/30 border-2 border-transparent hover:border-red-300 dark:hover:border-red-700 transition-all transform hover:scale-110"
           >
             <ShoppingBag size={20} className="text-gray-700 dark:text-gray-300" />
@@ -143,12 +143,12 @@ const Navbar: React.FC<NavbarProps> = ({ isDark, toggleTheme }) => {
       {isMobileMenuOpen && (
         <div className="md:hidden absolute top-full left-0 w-full bg-white dark:bg-gray-900 shadow-xl border-t border-gray-100 dark:border-gray-800 p-4 flex flex-col gap-4">
           <Link href="/order" className="text-lg font-medium text-gray-800 dark:text-gray-200">Cafeterias</Link>
-          <Link href="/bite" className="text-lg font-medium text-gray-800 dark:text-gray-200">Bite</Link>
+          <Link href="/stores" className="text-lg font-medium text-gray-800 dark:text-gray-200">Store</Link>
           <a href="#" className="text-lg font-medium text-gray-800 dark:text-gray-200">Delivery Map</a>
           
           {/* Cart Button for Mobile */}
           <Link 
-            href="/bite"
+            href="/stores"
             className="relative bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-4 py-3 rounded-xl font-bold border-2 border-gray-300 dark:border-gray-700 flex items-center justify-center gap-2"
           >
             <ShoppingBag size={20} />

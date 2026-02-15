@@ -4,6 +4,30 @@
 export * from './menu';
 export * from './auth';
 
+// Re-export business types (excluding MealTime which conflicts with menu.ts)
+export type { 
+  BusinessType, 
+  Business, 
+  BusinessSettings,
+  Product,
+  ProductUnit,
+  BusinessFeatureFlags,
+  BusinessUIConfig,
+  ProductFormField 
+} from './business';
+
+export { 
+  CATEGORY_MAP,
+  BUSINESS_FEATURES,
+  ORDER_STATUS_CONFIG,
+  BUSINESS_UI_CONFIG,
+  PRODUCT_FORM_FIELDS,
+  getBusinessTypeLabel,
+  getCategoriesForBusinessType,
+  requiresInventoryTracking,
+  isLowStock
+} from './business';
+
 export interface User {
   id: string;
   name: string;
@@ -11,6 +35,7 @@ export interface User {
   avatar?: string;
   role: 'student' | 'runner' | 'admin' | 'partner';
   cafeteriaId?: string;
+  businessId?: string; // For multi-business support
 }
 
 export interface FoodItem {

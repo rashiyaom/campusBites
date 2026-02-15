@@ -7,6 +7,8 @@ import { useOrders } from '@/contexts/OrderContext';
 import { useMenu } from '@/contexts/MenuContext';
 import { useInventory } from '@/contexts/InventoryContext';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
+import { useCurrentBusiness } from '@/contexts/BusinessContext';
+import { BUSINESS_UI_CONFIG, BusinessType } from '@/types/business';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { useToast, ToastContainer } from '@/components/ui/Toast';
 import { OrderStatus } from '@/types';
@@ -69,8 +71,14 @@ const PartnerDashboard = () => {
   const { getMenuItemsByCafeteria } = useMenu();
   const { getInventoryByCafeteria, getLowStockItems, updateStock, restockItem } = useInventory();
   const { getAnalytics } = useAnalytics();
+  const { business } = useCurrentBusiness(user?.id);
   const { toasts, closeToast, success, info } = useToast();
   const cafeteria = getCafeteria();
+  
+  // Business type configuration
+  const businessType: BusinessType = (business as any)?.type || 'food';
+  const uiConfig = BUSINESS_UI_CONFIG[businessType];
+  
   const [isDark, setIsDark] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [isAuthChecking, setIsAuthChecking] = useState(true);
@@ -83,7 +91,9 @@ const PartnerDashboard = () => {
   const [restockQuantity, setRestockQuantity] = useState<Record<string, number>>({});
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [bulkActionMode, setBulkActionMode] = useState(false);
-  const [lastPaidOrdersCount, setLastPaidOrdersCount] = useState(0);
+  
+  // Use ref to track paid orders count without causing re-renders
+  const lastPaidOrdersCountRef = React.useRef(0);
 
   // Real-time sync for orders - automatically refresh when orders change (e.g., payment completed)
   useRealtimeSync(['orders'], async () => {
@@ -240,6 +250,12 @@ const PartnerDashboard = () => {
            order.status === 'ready';
   }), [orders]);
 
+  // Use ref for success function to avoid dependency issues
+  const successRef = React.useRef(success);
+  React.useEffect(() => {
+    successRef.current = success;
+  }, [success]);
+
   // Monitor for payment status changes
   useEffect(() => {
     if (!cafeteria) return;
@@ -248,16 +264,16 @@ const PartnerDashboard = () => {
       order.status === 'confirmed' && order.paymentStatus === 'completed'
     );
     
-    console.log('[PartnerDashboard] Payment monitoring - Current paid orders:', paidOrders.length, 'Last count:', lastPaidOrdersCount);
+    console.log('[PartnerDashboard] Payment monitoring - Current paid orders:', paidOrders.length, 'Last count:', lastPaidOrdersCountRef.current);
     
     // Notify when new payment is received
-    if (lastPaidOrdersCount > 0 && paidOrders.length > lastPaidOrdersCount) {
-      const newPayments = paidOrders.length - lastPaidOrdersCount;
+    if (lastPaidOrdersCountRef.current > 0 && paidOrders.length > lastPaidOrdersCountRef.current) {
+      const newPayments = paidOrders.length - lastPaidOrdersCountRef.current;
       console.log('[PartnerDashboard] 🎉 New payment detected!', newPayments, 'payment(s)');
-      success(`${newPayments} new payment${newPayments > 1 ? 's' : ''} received! 💰`);
+      successRef.current(`${newPayments} new payment${newPayments > 1 ? 's' : ''} received! 💰`);
     }
     
-    setLastPaidOrdersCount(paidOrders.length);
+    lastPaidOrdersCountRef.current = paidOrders.length;
   }, [orders, cafeteria]);
 
   const todayRevenue = React.useMemo(() => todayOrders.reduce((sum, order) => 
@@ -1188,13 +1204,22 @@ const PartnerDashboard = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-8">
         {/* Enhanced Welcome Banner */}
-        <div className="bg-gradient-to-br from-red-600 via-red-500 to-orange-500 rounded-xl sm:rounded-2xl p-4 sm:p-6 mb-3 sm:mb-6 text-white shadow-xl">
+        <div 
+          className="rounded-xl sm:rounded-2xl p-4 sm:p-6 mb-3 sm:mb-6 text-white shadow-xl"
+          style={{ background: `linear-gradient(to bottom right, ${uiConfig.gradientFrom}, ${uiConfig.color}, ${uiConfig.gradientTo})` }}
+        >
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-2xl">{uiConfig.icon}</span>
+                <span className="px-2 py-1 bg-white/20 backdrop-blur-sm rounded-lg text-xs font-bold uppercase tracking-wider">
+                  {uiConfig.label}
+                </span>
+              </div>
               <h2 className="text-xl sm:text-2xl md:text-3xl font-black mb-2">
                 Welcome back, {user.name.split(' ')[0]}! 👋
               </h2>
-              <p className="text-sm sm:text-base text-red-100 mb-3 sm:mb-0">
+              <p className="text-sm sm:text-base text-white/80 mb-3 sm:mb-0">
                 {cafeteria.name} • {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
               </p>
             </div>

@@ -1,53 +1,66 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 /**
  * Hook to synchronize data across tabs/windows using localStorage events
  * This ensures that changes made in one tab (e.g., partner dashboard) 
  * are immediately reflected in other tabs (e.g., student ordering)
+ * 
+ * IMPORTANT: 
+ * - Uses useRef to store the callback to avoid infinite re-renders
+ * - Only listens for cross-tab storage events (native 'storage' event)
+ * - Does NOT listen for same-tab events to avoid infinite loops
+ * - Uses polling as backup for cases where storage events might be missed
  */
 export const useRealtimeSync = (
   storageKeys: string[],
   onSync: () => void
 ) => {
+  // Use ref to store callback - this prevents infinite loops when onSync is inline function
+  const onSyncRef = useRef(onSync);
+  const keysRef = useRef(storageKeys);
+  const lastSyncRef = useRef<number>(0);
+  
+  // Update refs whenever values change (without triggering re-render)
   useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      // Check if the changed key is one we're monitoring
-      if (e.key && storageKeys.includes(e.key)) {
-        console.log(`[RealtimeSync] Detected change in ${e.key} from another tab`);
-        onSync();
-      }
-    };
+    onSyncRef.current = onSync;
+  }, [onSync]);
 
-    const handleCustomStorageChange = (e: CustomEvent) => {
-      // Handle same-tab updates via custom event
-      if (e.detail?.key && storageKeys.includes(e.detail.key)) {
-        console.log(`[RealtimeSync] Detected change in ${e.detail.key} from same tab`);
-        onSync();
+  useEffect(() => {
+    keysRef.current = storageKeys;
+  }, [storageKeys]);
+
+  useEffect(() => {
+    // Handle cross-tab storage changes only
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key && keysRef.current.includes(e.key)) {
+        console.log(`[RealtimeSync] Detected change in ${e.key} from another tab`);
+        lastSyncRef.current = Date.now();
+        onSyncRef.current();
       }
     };
 
     // Listen for storage events (fires when localStorage changes in another tab)
     window.addEventListener('storage', handleStorageChange);
-    
-    // Listen for custom events (fires when localStorage changes in the same tab)
-    window.addEventListener('localStorageUpdate', handleCustomStorageChange as EventListener);
 
-    // Set up a fast polling interval for real-time updates (2 seconds for better UX)
+    // Polling as backup - but with throttling to avoid excessive calls
     const interval = setInterval(() => {
-      onSync();
-    }, 2000); // Poll every 2 seconds for near real-time updates
+      // Only poll if no recent sync happened
+      if (Date.now() - lastSyncRef.current > 1500) {
+        onSyncRef.current();
+        lastSyncRef.current = Date.now();
+      }
+    }, 2000);
 
     console.log(`[RealtimeSync] Started monitoring: ${storageKeys.join(', ')}`);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('localStorageUpdate', handleCustomStorageChange as EventListener);
       clearInterval(interval);
       console.log(`[RealtimeSync] Stopped monitoring: ${storageKeys.join(', ')}`);
     };
-  }, [storageKeys, onSync]);
+  }, []); // Empty dependency array - setup only once
 };
 
 /**

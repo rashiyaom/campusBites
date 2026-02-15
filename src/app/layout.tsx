@@ -11,17 +11,20 @@ import { AnalyticsProvider } from "@/contexts/AnalyticsContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import NotificationPopup from "@/components/ui/NotificationPopup";
+// Multi-business support
+import { BusinessProvider } from "@/contexts/BusinessContext";
+import { ProductProvider } from "@/contexts/ProductContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "CampusBite - Premium Campus Food Delivery Service",
-  description: "Experience fast, premium food delivery across campus. Order from top cafeterias and restaurants, delivered fresh to your location in minutes. Available 24/7 for students.",
-  keywords: "campus food delivery, student food service, university dining, fast delivery, premium meals, campus cafeteria",
+  title: "CampusBite - Campus Commerce Platform",
+  description: "Your one-stop campus platform for Food, Groceries, Stationery, and Daily Essentials. Order from top vendors, delivered fresh to your location in minutes.",
+  keywords: "campus food delivery, student food service, university dining, groceries, stationery, daily essentials, campus shopping",
   authors: [{ name: "CampusBite Team" }],
   openGraph: {
-    title: "CampusBite - Premium Campus Food Delivery",
-    description: "Fast, fresh, premium food delivered across campus",
+    title: "CampusBite - Campus Commerce Platform",
+    description: "Food, Groceries, Stationery & Essentials - All in one place",
     type: "website",
   },
 };
@@ -54,22 +57,26 @@ export default function RootLayout({
       <body className={inter.className}>
         <AuthProvider>
           <StudentAuthProvider>
-            <CafeteriaProvider>
-              <MenuProvider>
-                <CartProvider>
-                  <OrderProvider>
-                    <InventoryProvider>
-                      <AnalyticsProvider>
-                        <NotificationProvider>
-                          {children}
-                          <NotificationPopup />
-                        </NotificationProvider>
-                      </AnalyticsProvider>
-                    </InventoryProvider>
-                  </OrderProvider>
-                </CartProvider>
-              </MenuProvider>
-            </CafeteriaProvider>
+            <BusinessProvider>
+              <CafeteriaProvider>
+                <ProductProvider>
+                  <MenuProvider>
+                    <CartProvider>
+                      <OrderProvider>
+                        <InventoryProvider>
+                          <AnalyticsProvider>
+                            <NotificationProvider>
+                              {children}
+                              <NotificationPopup />
+                            </NotificationProvider>
+                          </AnalyticsProvider>
+                        </InventoryProvider>
+                      </OrderProvider>
+                    </CartProvider>
+                  </MenuProvider>
+                </ProductProvider>
+              </CafeteriaProvider>
+            </BusinessProvider>
           </StudentAuthProvider>
         </AuthProvider>
       </body>

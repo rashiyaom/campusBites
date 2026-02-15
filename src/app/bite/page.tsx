@@ -4,8 +4,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useMenu } from '@/contexts/MenuContext';
 import { useCafeterias } from '@/contexts/CafeteriaContext';
 import { useCart } from '@/contexts/CartContext';
-import { useRouter } from 'next/navigation';
+import { useProducts } from '@/contexts/ProductContext';
+import { useBusinesses } from '@/contexts/BusinessContext';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { CartView } from '@/components/student/CartView';
+import { BUSINESS_UI_CONFIG, CATEGORY_MAP, BusinessType, getBusinessTypeLabel } from '@/types/business';
 import Link from 'next/link';
 import { 
   Search, 
@@ -432,7 +435,10 @@ const DetailView = ({ item, onClose, onAddToCart }: { item: any; onClose: () => 
 // --- MAIN COMPONENT ---
 const BitePage = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { menuItems } = useMenu();
+  const { products } = useProducts();
+  const { businesses } = useBusinesses();
   const { cafeterias } = useCafeterias();
   const { addToCafeCart, cafeCarts, getTotalCartsCount } = useCart();
   const [isDark, setIsDark] = useState(false);
@@ -441,7 +447,21 @@ const BitePage = () => {
   const [showCart, setShowCart] = useState(false);
   const [filter, setFilter] = useState('All');
   const [isScrolled, setIsScrolled] = useState(false);
-  const [selectedCafeId, setSelectedCafeId] = useState<string | null>(null); // For cart view
+  const [selectedCafeId, setSelectedCafeId] = useState<string | null>(null);
+  
+  // Business type from URL param
+  const businessTypeParam = searchParams.get('type') as BusinessType | null;
+  const [activeBusinessType, setActiveBusinessType] = useState<BusinessType | 'all'>('all');
+
+  // Set business type from URL on mount
+  useEffect(() => {
+    if (businessTypeParam && ['food', 'grocery', 'stationery', 'daily_essentials'].includes(businessTypeParam)) {
+      setActiveBusinessType(businessTypeParam);
+    }
+  }, [businessTypeParam]);
+
+  // Get UI config based on active business type
+  const currentConfig = activeBusinessType !== 'all' ? BUSINESS_UI_CONFIG[activeBusinessType] : null;
 
   const handleAddToCart = (item: any, qty: number) => {
     const cafeteriaId = item.cafeteriaId || item.cafe?.id;
@@ -497,13 +517,45 @@ const BitePage = () => {
   // Get cafe name by ID
   const getCafeName = (cafeteriaId: string) => {
     const cafe = cafeterias.find((c: any) => c.id === cafeteriaId);
-    return cafe?.name || 'Unknown Cafe';
+    const business = businesses.find((b: any) => b.id === cafeteriaId);
+    return cafe?.name || business?.name || 'Unknown Store';
   };
 
-  // Get unique categories
-  const categories: string[] = ['All', ...Array.from(new Set(menuItems.map((item: any) => item.category)))];
+  // Get categories based on active business type
+  const getCategories = () => {
+    if (activeBusinessType !== 'all' && CATEGORY_MAP[activeBusinessType]) {
+      return ['All', ...CATEGORY_MAP[activeBusinessType]];
+    }
+    // Default food categories
+    return ['All', ...Array.from(new Set(menuItems.map((item: any) => item.category)))];
+  };
 
-  const filteredItems = filter === 'All' ? menuItems : menuItems.filter((item: any) => item.category === filter);
+  const categories: string[] = getCategories();
+
+  // Combine menu items and products
+  const allItems = React.useMemo(() => {
+    // Get products with businessType matching the filter
+    const filteredProducts = products.filter((p: any) => {
+      if (activeBusinessType === 'all') return true;
+      return p.businessType === activeBusinessType;
+    });
+    
+    // Include menu items only for food type or when showing all
+    const relevantMenuItems = activeBusinessType === 'food' || activeBusinessType === 'all' 
+      ? menuItems 
+      : [];
+    
+    // Merge and dedupe by id
+    const combined = [...relevantMenuItems, ...filteredProducts];
+    const seen = new Set();
+    return combined.filter(item => {
+      if (seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    });
+  }, [menuItems, products, activeBusinessType]);
+
+  const filteredItems = filter === 'All' ? allItems : allItems.filter((item: any) => item.category === filter);
 
   return (
     <div className={`${isDark ? 'dark' : ''} transition-colors duration-500`}>
@@ -549,10 +601,12 @@ const BitePage = () => {
              {/* Left: Logo + Home Link */}
              <div className="flex items-center gap-3">
                <Link href="/" className="flex items-center gap-2">
-                  <div className="bg-orange-500 p-2 rounded-xl text-white shadow-lg">
+                  <div className={`p-2 rounded-xl text-white shadow-lg ${currentConfig ? '' : 'bg-orange-500'}`} style={currentConfig ? { background: `linear-gradient(to right, ${currentConfig.gradientFrom}, ${currentConfig.gradientTo})` } : {}}>
                     <Utensils size={20} />
                   </div>
-                  <h1 className="text-xl md:text-2xl font-black tracking-tight dark:text-white">Campus<span className="text-orange-500">Bite</span></h1>
+                  <h1 className="text-xl md:text-2xl font-black tracking-tight dark:text-white">
+                    Campus<span style={{ color: currentConfig?.color || '#f97316' }}>Store</span>
+                  </h1>
                </Link>
                <Link 
                  href="/" 
@@ -566,7 +620,7 @@ const BitePage = () => {
              {/* Desktop Search Bar */}
              <div className="flex-1 max-w-md mx-4 hidden md:flex items-center gap-2 bg-white dark:bg-gray-800 p-2 rounded-full border border-gray-200 dark:border-gray-700 shadow-sm focus-within:ring-2 ring-orange-100 dark:ring-orange-900 transition-all">
                 <Search className="text-gray-400 dark:text-gray-500 ml-2" size={20} />
-                <input type="text" placeholder="Craving something specific?" className="flex-1 bg-transparent outline-none text-sm font-medium placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-white" />
+                <input type="text" placeholder={`Search ${activeBusinessType === 'all' ? 'products' : getBusinessTypeLabel(activeBusinessType).toLowerCase()}...`} className="flex-1 bg-transparent outline-none text-sm font-medium placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-white" />
                 <div className="h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
                 <button className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-500 dark:text-gray-400"><Filter size={18} /></button>
              </div>
@@ -614,24 +668,73 @@ const BitePage = () => {
            </div>
         </div>
 
-        {/* Categories Bar */}
+        {/* Business Type Tabs - Cleaner Design */}
         {viewMode !== 'stream' && (
-          <div className="max-w-7xl mx-auto px-4 mt-2 md:mt-4 overflow-x-auto hide-scrollbar pb-2 relative z-10">
-             <div className="flex gap-3">
+          <div className="max-w-7xl mx-auto px-4 mt-3 relative z-10">
+            {/* Single row with business types and categories combined */}
+            <div className="flex items-center gap-3 overflow-x-auto hide-scrollbar pb-3">
+              {/* Business Type Pills */}
+              <div className="flex gap-1.5 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm p-1 rounded-full border border-gray-200 dark:border-gray-700 shadow-sm">
+                <button
+                  onClick={() => {
+                    setActiveBusinessType('all');
+                    setFilter('All');
+                    router.push('/bite');
+                  }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+                    activeBusinessType === 'all'
+                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  All
+                </button>
+                {(['food', 'grocery', 'stationery', 'daily_essentials'] as BusinessType[]).map((type) => {
+                  const config = BUSINESS_UI_CONFIG[type];
+                  const isActive = activeBusinessType === type;
+                  return (
+                    <button
+                      key={type}
+                      onClick={() => {
+                        setActiveBusinessType(type);
+                        setFilter('All');
+                        router.push(`/bite?type=${type}`);
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                        isActive
+                          ? 'text-white shadow-sm'
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                      }`}
+                      style={isActive ? { background: config.color } : {}}
+                    >
+                      <span className="text-sm">{config.icon}</span>
+                      <span className="hidden sm:inline">{config.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Divider */}
+              <div className="h-6 w-px bg-gray-300 dark:bg-gray-700 flex-shrink-0"></div>
+
+              {/* Category Pills */}
+              <div className="flex gap-2 overflow-x-auto hide-scrollbar">
                 {categories.map((cat: string) => (
-                   <button 
-                     key={cat}
-                     onClick={() => setFilter(cat)}
-                     className={`px-4 py-2 rounded-full text-xs md:text-sm font-bold whitespace-nowrap transition-all ${
-                       filter === cat 
-                         ? 'bg-gradient-to-r from-orange-500 to-red-500 dark:from-orange-600 dark:to-red-600 text-white shadow-lg shadow-orange-500/40 dark:shadow-orange-500/30 scale-105' 
-                         : 'bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-600 dark:text-gray-300 border border-gray-200/50 dark:border-gray-700/50 hover:border-orange-300 dark:hover:border-orange-500 hover:scale-105'
-                     }`}
-                   >
-                     {cat}
-                   </button>
+                  <button 
+                    key={cat}
+                    onClick={() => setFilter(cat)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+                      filter === cat 
+                        ? 'text-white shadow-md' 
+                        : 'bg-white/80 dark:bg-gray-800/80 text-gray-600 dark:text-gray-300 border border-gray-200/50 dark:border-gray-700/50 hover:border-gray-400 dark:hover:border-gray-500'
+                    }`}
+                    style={filter === cat ? { background: currentConfig?.color || '#f97316' } : {}}
+                  >
+                    {cat}
+                  </button>
                 ))}
-             </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -642,17 +745,113 @@ const BitePage = () => {
          {/* GRID VIEW */}
          {viewMode === 'grid' && (
            <div className="pt-32 md:pt-40 pb-20 px-4 max-w-7xl mx-auto">
-              {filteredItems.length === 0 ? (
+              {/* CAFETERIAS SECTION */}
+              <section className="mb-16">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-2">
+                      Cafeterias
+                    </h2>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Delicious meals from campus eateries
+                    </p>
+                  </div>
+                  <div className="text-orange-500 font-bold text-sm">View All →</div>
+                </div>
+                {filteredItems.filter((item: any) => {
+                  const cafe = cafeterias.find(c => c.id === item.cafeteriaId);
+                  const business = businesses.find(b => b.id === item.businessId);
+                  return (cafe && !business) || (business?.businessType === 'food');
+                }).length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-3xl">
+                    <Utensils size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-3" />
+                    <p className="text-gray-400 dark:text-gray-500">No cafeteria items available</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {filteredItems.filter((item: any) => {
+                      const cafe = cafeterias.find(c => c.id === item.cafeteriaId);
+                      const business = businesses.find(b => b.id === item.businessId);
+                      return (cafe && !business) || (business?.businessType === 'food');
+                    }).map((item: any) => (
+                      <TiltCard key={item.id} item={item} cafeName={getCafeName(item.cafeteriaId)} onClick={setSelectedItem} />
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* GROCERIES SECTION */}
+              <section className="mb-16">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-2">
+                      Groceries
+                    </h2>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Fresh produce, snacks & daily groceries
+                    </p>
+                  </div>
+                  <div className="text-green-500 font-bold text-sm">View All →</div>
+                </div>
+                {filteredItems.filter((item: any) => {
+                  const business = businesses.find(b => b.id === item.businessId);
+                  return business?.businessType === 'grocery';
+                }).length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-3xl">
+                    <ShoppingBag size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-3" />
+                    <p className="text-gray-400 dark:text-gray-500">No grocery items available</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {filteredItems.filter((item: any) => {
+                      const business = businesses.find(b => b.id === item.businessId);
+                      return business?.businessType === 'grocery';
+                    }).map((item: any) => (
+                      <TiltCard key={item.id} item={item} cafeName={getCafeName(item.cafeteriaId)} onClick={setSelectedItem} />
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* ESSENTIALS SECTION */}
+              <section className="mb-16">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-2">
+                      Essentials
+                    </h2>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Stationery & daily essentials for campus life
+                    </p>
+                  </div>
+                  <div className="text-blue-500 font-bold text-sm">View All →</div>
+                </div>
+                {filteredItems.filter((item: any) => {
+                  const business = businesses.find(b => b.id === item.businessId);
+                  return business?.businessType === 'stationery' || business?.businessType === 'daily_essentials';
+                }).length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-3xl">
+                    <Coffee size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-3" />
+                    <p className="text-gray-400 dark:text-gray-500">No essential items available</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {filteredItems.filter((item: any) => {
+                      const business = businesses.find(b => b.id === item.businessId);
+                      return business?.businessType === 'stationery' || business?.businessType === 'daily_essentials';
+                    }).map((item: any) => (
+                      <TiltCard key={item.id} item={item} cafeName={getCafeName(item.cafeteriaId)} onClick={setSelectedItem} />
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* Show message if no items in any section */}
+              {filteredItems.length === 0 && (
                 <div className="text-center py-20">
                   <Utensils size={64} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" />
                   <h3 className="text-2xl font-bold text-gray-400 dark:text-gray-500 mb-2">No items found</h3>
                   <p className="text-gray-500 dark:text-gray-600">Check back later for delicious options!</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {filteredItems.map((item: any) => (
-                    <TiltCard key={item.id} item={item} cafeName={getCafeName(item.cafeteriaId)} onClick={setSelectedItem} />
-                  ))}
                 </div>
               )}
            </div>

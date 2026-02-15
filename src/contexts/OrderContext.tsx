@@ -23,6 +23,9 @@ const OrderContext = createContext<OrderContextType | undefined>(undefined);
 export const OrderProvider = ({ children }: { children: React.ReactNode }) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  
+  // Flag to prevent triggering sync when loading from external source
+  const isLoadingFromStorageRef = React.useRef(false);
 
   // Load orders from localStorage on mount
   useEffect(() => {
@@ -55,20 +58,23 @@ export const OrderProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   // Save orders to localStorage whenever they change (only after initialization)
+  // Skip triggering sync if we're loading from storage (to avoid infinite loops)
   useEffect(() => {
-    if (isInitialized) {
+    if (isInitialized && !isLoadingFromStorageRef.current) {
       localStorage.setItem('orders', JSON.stringify(orders));
       triggerSync('orders'); // Notify other tabs
       console.log(`[OrderContext] Saved ${orders.length} orders to storage`);
     }
+    // Reset the flag after the effect runs
+    isLoadingFromStorageRef.current = false;
   }, [orders, isInitialized]);
 
-  // Listen for storage changes from other tabs/windows
+  // Listen for storage changes from OTHER tabs/windows only (native storage event)
+  // We do NOT listen for localStorageUpdate since that's for same-tab which we already handle
   useEffect(() => {
-    const handleStorageChange = (e: StorageEvent | CustomEvent) => {
-      const key = e instanceof StorageEvent ? e.key : (e as CustomEvent).detail?.key;
-      
-      if (key === 'orders') {
+    const handleStorageChange = (e: StorageEvent) => {
+      // Only handle native storage events (cross-tab)
+      if (e.key === 'orders') {
         const savedOrders = localStorage.getItem('orders');
         if (savedOrders) {
           try {
@@ -80,31 +86,38 @@ export const OrderProvider = ({ children }: { children: React.ReactNode }) => {
               scheduledTime: order.scheduledTime ? new Date(order.scheduledTime) : undefined,
             }));
             
-            // Use functional update to avoid dependency warnings
+            // Set flag to prevent triggering sync when we update from storage
+            isLoadingFromStorageRef.current = true;
+            
+            // Use functional update to only update if data actually changed
             setOrders(prev => {
-              // Only update if data actually changed (compare order IDs)
               const prevIds = prev.map(o => o.id).sort().join(',');
               const newIds = ordersData.map((o: any) => o.id).sort().join(',');
               
-              if (prevIds !== newIds || prev.length !== ordersData.length) {
-                console.log('[OrderContext] Synced orders from storage');
+              // Also check status changes
+              const prevStatuses = prev.map(o => `${o.id}:${o.status}`).sort().join(',');
+              const newStatuses = ordersData.map((o: any) => `${o.id}:${o.status}`).sort().join(',');
+              
+              if (prevIds !== newIds || prevStatuses !== newStatuses) {
+                console.log('[OrderContext] Synced orders from other tab');
                 return ordersData;
               }
+              isLoadingFromStorageRef.current = false; // Reset if no change
               return prev;
             });
           } catch (error) {
             console.error('Failed to sync orders:', error);
+            isLoadingFromStorageRef.current = false;
           }
         }
       }
     };
 
-    window.addEventListener('storage', handleStorageChange as EventListener);
-    window.addEventListener('localStorageUpdate', handleStorageChange as EventListener);
+    // Only listen for native storage event (cross-tab sync)
+    window.addEventListener('storage', handleStorageChange);
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange as EventListener);
-      window.removeEventListener('localStorageUpdate', handleStorageChange as EventListener);
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 
@@ -204,15 +217,32 @@ export const OrderProvider = ({ children }: { children: React.ReactNode }) => {
             updatedAt: new Date(order.updatedAt),
             scheduledTime: order.scheduledTime ? new Date(order.scheduledTime) : undefined,
           }));
-          setOrders(ordersData);
-          console.log(`[OrderContext] Refreshed ${ordersData.length} orders from localStorage`);
+          
+          // Set flag to prevent triggering sync (we're just reading, not changing)
+          isLoadingFromStorageRef.current = true;
+          
+          setOrders(prev => {
+            // Only update if there are actual changes
+            const prevJson = JSON.stringify(prev.map(o => ({ id: o.id, status: o.status, paymentStatus: o.paymentStatus })));
+            const newJson = JSON.stringify(ordersData.map((o: any) => ({ id: o.id, status: o.status, paymentStatus: o.paymentStatus })));
+            
+            if (prevJson !== newJson) {
+              console.log(`[OrderContext] Refreshed ${ordersData.length} orders from localStorage`);
+              return ordersData;
+            }
+            console.log('[OrderContext] No changes detected during refresh');
+            isLoadingFromStorageRef.current = false; // Reset if no change
+            return prev;
+          });
           resolve();
         } catch (error) {
           console.error('[OrderContext] Failed to refresh orders:', error);
+          isLoadingFromStorageRef.current = false;
           resolve();
         }
       } else {
         console.log('[OrderContext] No orders in localStorage to refresh');
+        isLoadingFromStorageRef.current = true;
         setOrders([]);
         resolve();
       }

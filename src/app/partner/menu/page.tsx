@@ -3,19 +3,28 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMenu } from '@/contexts/MenuContext';
-import { MenuItem } from '@/types';
-import { Search, Plus, Edit, Trash2, ToggleLeft, ToggleRight, ArrowLeft, Moon, Sun } from 'lucide-react';
+import { useProducts } from '@/contexts/ProductContext';
+import { useCurrentBusiness } from '@/contexts/BusinessContext';
+import { Product, BUSINESS_UI_CONFIG, CATEGORY_MAP, isLowStock } from '@/types/business';
+import { Search, Plus, Edit, Trash2, ToggleLeft, ToggleRight, ArrowLeft, Moon, Sun, AlertTriangle, Package } from 'lucide-react';
 
 const MenuManager = () => {
   const router = useRouter();
   const { user, isAuthenticated, getCafeteria } = useAuth();
-  const { getMenuItemsByCafeteria, updateMenuItem, deleteMenuItem } = useMenu();
+  const { getProductsByBusiness, updateProduct, deleteProduct, toggleProductAvailability } = useProducts();
   const cafeteria = getCafeteria();
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const { business } = useCurrentBusiness(user?.id);
+  
+  const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [isDark, setIsDark] = useState(false);
+
+  // Get business type config
+  const businessId = business?.id || cafeteria?.id;
+  const businessType = business?.businessType || 'food';
+  const uiConfig = BUSINESS_UI_CONFIG[businessType];
+  const categories = CATEGORY_MAP[businessType];
 
   useEffect(() => {
     // Check theme
@@ -38,13 +47,13 @@ const MenuManager = () => {
     }
   }, [isAuthenticated, user, router]);
 
-  // Update local state when cafeteria changes
+  // Update local state when business changes
   useEffect(() => {
-    if (cafeteria) {
-      const items = getMenuItemsByCafeteria(cafeteria.id);
-      setMenuItems(items);
+    if (businessId) {
+      const items = getProductsByBusiness(businessId);
+      setProducts(items);
     }
-  }, [cafeteria?.id]); // Only depend on cafeteria.id, not the function
+  }, [businessId]);
 
   const toggleTheme = () => {
     setIsDark(!isDark);
@@ -57,39 +66,40 @@ const MenuManager = () => {
     }
   };
 
-  const toggleAvailability = (itemId: string) => {
-    const item = menuItems.find(i => i.id === itemId);
-    if (item) {
-      updateMenuItem(itemId, { available: !item.available });
-      setMenuItems(prev =>
-        prev.map(i =>
-          i.id === itemId ? { ...i, available: !i.available } : i
-        )
-      );
-    }
+  const handleToggleAvailability = (productId: string) => {
+    toggleProductAvailability(productId);
+    setProducts(prev =>
+      prev.map(p =>
+        p.id === productId ? { ...p, isAvailable: !p.isAvailable } : p
+      )
+    );
   };
 
-  const handleDelete = (itemId: string) => {
+  const handleDelete = (productId: string) => {
     if (confirm('Are you sure you want to delete this item?')) {
-      deleteMenuItem(itemId);
-      setMenuItems(prev => prev.filter(item => item.id !== itemId));
+      deleteProduct(productId);
+      setProducts(prev => prev.filter(p => p.id !== productId));
     }
   };
 
-  const filteredItems = menuItems.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         item.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = filterCategory === 'all' || item.category === filterCategory;
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         product.brand?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = filterCategory === 'all' || product.category === filterCategory;
     return matchesSearch && matchesCategory;
   });
 
-  const categories = ['all', ...Array.from(new Set(menuItems.map(item => item.category)))];
+  const productCategories = ['all', ...Array.from(new Set(products.map(p => p.category)))];
+  const lowStockCount = products.filter(isLowStock).length;
 
-  if (!isAuthenticated || !cafeteria) {
+  if (!isAuthenticated || (!cafeteria && !business)) {
     return <div className="min-h-screen flex items-center justify-center">
       <div className="w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
     </div>;
   }
+
+  const productLabel = businessType === 'food' ? 'Menu Item' : 'Product';
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -104,11 +114,21 @@ const MenuManager = () => {
               >
                 <ArrowLeft size={20} className="text-gray-600 dark:text-gray-400" />
               </button>
-              <h1 className="text-lg font-black text-gray-900 dark:text-white">
-                Menu Manager
-              </h1>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{uiConfig.icon}</span>
+                <h1 className="text-lg font-black text-gray-900 dark:text-white">
+                  {businessType === 'food' ? 'Menu Manager' : 'Product Manager'}
+                </h1>
+              </div>
             </div>
             <div className="flex items-center gap-2">
+              {/* Low Stock Alert */}
+              {lowStockCount > 0 && businessType !== 'food' && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg text-sm font-medium">
+                  <AlertTriangle size={16} />
+                  <span>{lowStockCount} low stock</span>
+                </div>
+              )}
               <button
                 onClick={toggleTheme}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
@@ -122,10 +142,10 @@ const MenuManager = () => {
               </button>
               <button
                 onClick={() => router.push('/partner/menu/new')}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors"
+                className={`flex items-center gap-2 px-4 py-2 bg-gradient-to-r ${uiConfig.gradientFrom} ${uiConfig.gradientTo} text-white rounded-xl font-bold transition-all hover:opacity-90 shadow-md`}
               >
                 <Plus size={20} />
-                Add Item
+                Add {productLabel}
               </button>
             </div>
           </div>
@@ -141,22 +161,22 @@ const MenuManager = () => {
               <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search menu items..."
+                placeholder={`Search ${productLabel.toLowerCase()}s...`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-gray-900 dark:text-white"
+                className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 dark:text-white"
               />
             </div>
 
             {/* Category Filter */}
-            <div className="flex gap-2 overflow-x-auto">
-              {categories.map(category => (
+            <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
+              {productCategories.map(category => (
                 <button
                   key={category}
                   onClick={() => setFilterCategory(category)}
                   className={`px-4 py-3 rounded-xl font-bold text-sm whitespace-nowrap transition-all ${
                     filterCategory === category
-                      ? 'bg-red-600 text-white'
+                      ? `bg-gradient-to-r ${uiConfig.gradientFrom} ${uiConfig.gradientTo} text-white`
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                   }`}
                 >
@@ -167,84 +187,127 @@ const MenuManager = () => {
           </div>
         </div>
 
-        {/* Menu Items Grid */}
+        {/* Products Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredItems.map(item => (
+          {filteredProducts.map(product => (
             <div
-              key={item.id}
+              key={product.id}
               className={`bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 hover:shadow-lg transition-all ${
-                !item.available ? 'opacity-60' : ''
+                !product.isAvailable ? 'opacity-60' : ''
               }`}
             >
-              {/* Item Image */}
+              {/* Product Image */}
               <div className="relative h-48 overflow-hidden bg-gray-200 dark:bg-gray-800">
                 <img
-                  src={item.image}
-                  alt={item.name}
+                  src={product.image || 'https://via.placeholder.com/400x300?text=No+Image'}
+                  alt={product.name}
                   className="w-full h-full object-cover"
                 />
+                <div className="absolute top-3 left-3 flex gap-2">
+                  {/* Veg/Non-Veg Badge for Food */}
+                  {businessType === 'food' && product.isVeg !== undefined && (
+                    <span className={`w-5 h-5 rounded-sm border-2 flex items-center justify-center ${
+                      product.isVeg ? 'border-green-500' : 'border-red-500'
+                    }`}>
+                      <span className={`w-2.5 h-2.5 rounded-full ${
+                        product.isVeg ? 'bg-green-500' : 'bg-red-500'
+                      }`}></span>
+                    </span>
+                  )}
+                </div>
                 <div className="absolute top-3 right-3 flex gap-2">
                   <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    item.available
+                    product.isAvailable
                       ? 'bg-green-500 text-white'
                       : 'bg-red-500 text-white'
                   }`}>
-                    {item.available ? 'Available' : 'Unavailable'}
+                    {product.isAvailable ? 'Available' : 'Unavailable'}
                   </span>
                 </div>
+                {/* Low Stock Warning */}
+                {isLowStock(product) && (
+                  <div className="absolute bottom-3 left-3 flex items-center gap-1 px-2 py-1 bg-amber-500 text-white rounded-full text-xs font-bold">
+                    <AlertTriangle size={12} />
+                    Low Stock: {product.stock}
+                  </div>
+                )}
               </div>
 
-              {/* Item Details */}
+              {/* Product Details */}
               <div className="p-6">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <h3 className="text-lg font-black text-gray-900 dark:text-white mb-1">
-                      {item.name}
+                      {product.name}
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                      {item.description}
+                      {product.description}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-2xl font-black text-red-600">
-                    ₹{(item.price).toFixed(2)}
-                  </span>
-                  <span className="px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-xs font-bold text-gray-700 dark:text-gray-300">
-                    {item.category}
+                  <div>
+                    <span className={`text-2xl font-black ${uiConfig.color}`}>
+                      ₹{(product.price).toFixed(2)}
+                    </span>
+                    {product.mrp && product.mrp > product.price && (
+                      <span className="ml-2 text-sm text-gray-400 line-through">
+                        ₹{product.mrp.toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                  <span className={`px-3 py-1 ${uiConfig.bgColor} rounded-full text-xs font-bold ${uiConfig.color}`}>
+                    {product.category}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  <span>⭐ {item.rating}</span>
-                  <span>•</span>
-                  <span>{item.reviewCount} reviews</span>
-                  <span>•</span>
-                  <span>{item.prepTime}</span>
+                {/* Product Meta */}
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-4 flex-wrap">
+                  {product.rating !== undefined && product.rating > 0 && (
+                    <>
+                      <span>⭐ {product.rating}</span>
+                      <span>•</span>
+                    </>
+                  )}
+                  {product.brand && (
+                    <>
+                      <span>{product.brand}</span>
+                      <span>•</span>
+                    </>
+                  )}
+                  {product.stock !== undefined && (
+                    <span className="flex items-center gap-1">
+                      <Package size={14} />
+                      {product.stock} in stock
+                    </span>
+                  )}
+                  {product.prepTime && (
+                    <span>⏱️ {product.prepTime}</span>
+                  )}
                 </div>
 
                 {/* Actions */}
                 <div className="flex gap-2">
                   <button
-                    onClick={() => toggleAvailability(item.id)}
+                    onClick={() => handleToggleAvailability(product.id)}
                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all ${
-                      item.available
+                      product.isAvailable
                         ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30'
                         : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                     }`}
                   >
-                    {item.available ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
-                    {item.available ? 'Disable' : 'Enable'}
+                    {product.isAvailable ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+                    {product.isAvailable ? 'Disable' : 'Enable'}
                   </button>
                   <button
-                    onClick={() => router.push(`/partner/menu/edit/${item.id}`)}
+                    onClick={() => router.push(`/partner/menu/edit/${product.id}`)}
                     className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-xl transition-all"
                   >
                     <Edit size={18} />
                   </button>
                   <button
-                    onClick={() => handleDelete(item.id)}
+                    onClick={() => handleDelete(product.id)}
                     className="p-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-xl transition-all"
                   >
                     <Trash2 size={18} />
@@ -255,12 +318,18 @@ const MenuManager = () => {
           ))}
         </div>
 
-        {filteredItems.length === 0 && (
+        {filteredProducts.length === 0 && (
           <div className="text-center py-12">
-            <Search size={48} className="mx-auto text-gray-400 dark:text-gray-600 mb-4" />
-            <p className="text-gray-600 dark:text-gray-400 font-medium">
-              No menu items found
+            <div className="text-6xl mb-4">{uiConfig.icon}</div>
+            <p className="text-gray-600 dark:text-gray-400 font-medium mb-4">
+              No {productLabel.toLowerCase()}s found
             </p>
+            <button
+              onClick={() => router.push('/partner/menu/new')}
+              className={`px-6 py-3 bg-gradient-to-r ${uiConfig.gradientFrom} ${uiConfig.gradientTo} text-white rounded-xl font-bold transition-all hover:opacity-90`}
+            >
+              Add Your First {productLabel}
+            </button>
           </div>
         )}
       </main>
