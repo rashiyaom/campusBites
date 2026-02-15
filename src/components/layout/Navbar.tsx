@@ -55,7 +55,7 @@ const Navbar: React.FC<NavbarProps> = ({ isDark, toggleTheme }) => {
         </div>
         
         <div className="hidden md:flex items-center gap-6 font-medium text-gray-700 dark:text-gray-300">
-          <Link href="/order" className="hover:text-red-500 transition-colors">Cafeterias</Link>
+          <Link href="/order" className="hover:text-red-500 transition-colors">Store</Link>
           <a href="#" className="hover:text-red-500 transition-colors">Delivery Map</a>
           
           {isAuthenticated && student && (
@@ -141,7 +141,7 @@ const Navbar: React.FC<NavbarProps> = ({ isDark, toggleTheme }) => {
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden absolute top-full left-0 w-full bg-white dark:bg-gray-900 shadow-xl border-t border-gray-100 dark:border-gray-800 p-4 flex flex-col gap-4">
-          <Link href="/order" className="text-lg font-medium text-gray-800 dark:text-gray-200">Cafeterias</Link>
+          <Link href="/order" className="text-lg font-medium text-gray-800 dark:text-gray-200">Store</Link>
           <a href="#" className="text-lg font-medium text-gray-800 dark:text-gray-200">Delivery Map</a>
           
           {/* Cart Button for Mobile */}

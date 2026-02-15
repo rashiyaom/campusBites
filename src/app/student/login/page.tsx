@@ -349,7 +349,7 @@ export default function StudentLoginPage() {
                  <h2 className="text-2xl font-black text-white tracking-tight">Welcome Back</h2>
                  <p className="text-orange-200 text-sm font-medium">Hungry again?</p>
                </div>
-               <div className="absolute bottom-0 left-0 w-full h-8 bg-white rounded-t-[2rem]"></div>
+               <div className="absolute bottom-0 left-0 w-full h-8 bg-white dark:bg-gray-800 rounded-t-[2rem]"></div>
             </div>
 
             {submitStatus === 'success' ? (
