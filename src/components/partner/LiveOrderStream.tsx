@@ -24,7 +24,7 @@ import {
   Utensils,
   MessageSquare
 } from 'lucide-react';
-import { Order, OrderStatus } from '@/types';
+import { Order, OrderStatus, BusinessType, getOrderStatusLabel, getOrderStatusIcon } from '@/types';
 import { useOrders } from '@/contexts/OrderContext';
 import { triggerSync } from '@/hooks/useRealtimeSync';
 
@@ -573,10 +573,13 @@ interface OrderCardProps {
   onStatusChange: (orderId: string, newStatus: OrderStatus) => void;
   onDelete: (orderId: string) => void;
   onViewDetails: (order: Order) => void;
+  businessType?: BusinessType;
 }
 
-const OrderCard = ({ order, onStatusChange, onDelete, onViewDetails }: OrderCardProps) => {
+const OrderCard = ({ order, onStatusChange, onDelete, onViewDetails, businessType = 'food' }: OrderCardProps) => {
   const config = statusConfig[order.status] || statusConfig.confirmed;
+  // Use business-type-specific label
+  const statusLabel = getOrderStatusLabel(order.status, businessType);
   const orderDate = new Date(order.createdAt);
   const timeStr = orderDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 
@@ -597,6 +600,7 @@ const OrderCard = ({ order, onStatusChange, onDelete, onViewDetails }: OrderCard
 
   const nextStatus = getNextStatus(order.status);
   const nextConfig = nextStatus ? statusConfig[nextStatus] : null;
+  const nextStatusLabel = nextStatus ? getOrderStatusLabel(nextStatus, businessType) : null;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-all group">
@@ -612,7 +616,7 @@ const OrderCard = ({ order, onStatusChange, onDelete, onViewDetails }: OrderCard
             </div>
             <div>
               <h3 className="font-black text-gray-900 dark:text-white">{order.id}</h3>
-              <span className={`text-xs font-bold ${config.color}`}>{config.label}</span>
+              <span className={`text-xs font-bold ${config.color}`}>{statusLabel}</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -679,7 +683,7 @@ const OrderCard = ({ order, onStatusChange, onDelete, onViewDetails }: OrderCard
             className={`w-full py-3 bg-gradient-to-r ${nextConfig.gradient} text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:scale-[1.01] transition-all`}
           >
             {nextConfig.icon}
-            Mark as {nextConfig.label}
+            Mark as {nextStatusLabel}
           </button>
         )}
 
@@ -928,7 +932,7 @@ const DeleteConfirmModal = ({ orderId, onConfirm, onCancel }: DeleteConfirmModal
 // =====================================================
 // MAIN COMPONENT
 // =====================================================
-const LiveOrderStream = ({ cafeteriaId }: { cafeteriaId: string }) => {
+const LiveOrderStream = ({ cafeteriaId, businessType = 'food' }: { cafeteriaId: string; businessType?: BusinessType }) => {
   const { getOrdersByCafeteria, updateOrderStatus, deleteOrder, orders: contextOrders } = useOrders();
   const [orders, setOrders] = useState<Order[]>([]);
   const [pendingPopup, setPendingPopup] = useState<Order | null>(null);
@@ -1109,20 +1113,25 @@ const LiveOrderStream = ({ cafeteriaId }: { cafeteriaId: string }) => {
     const order = orders.find(o => o.id === orderId);
     if (order) {
       let notification: Record<string, unknown> | null = null;
+      const isFood = businessType === 'food';
       
       if (newStatus === 'preparing') {
         notification = {
           type: 'order_update',
-          title: 'Preparation Started! 👨‍🍳',
-          message: `Your order ${orderId} is now being prepared.`,
+          title: isFood ? 'Preparation Started! 👨‍🍳' : 'Packing Your Order! 📦',
+          message: isFood 
+            ? `Your order ${orderId} is now being prepared.`
+            : `Your order ${orderId} is being packed.`,
           orderId,
           timestamp: new Date()
         };
       } else if (newStatus === 'ready') {
         notification = {
           type: 'order_ready',
-          title: 'Order Ready! 🎉',
-          message: `Your order ${orderId} is ready for pickup!`,
+          title: isFood ? 'Order Ready! 🎉' : 'Ready for Dispatch! 🚀',
+          message: isFood
+            ? `Your order ${orderId} is ready for pickup!`
+            : `Your order ${orderId} is ready for dispatch!`,
           orderId,
           timestamp: new Date(),
           actionRequired: true
@@ -1130,8 +1139,10 @@ const LiveOrderStream = ({ cafeteriaId }: { cafeteriaId: string }) => {
       } else if (newStatus === 'completed') {
         notification = {
           type: 'order_update',
-          title: 'Order Completed ✅',
-          message: `Your order ${orderId} has been completed. Thank you!`,
+          title: isFood ? 'Order Completed ✅' : 'Order Dispatched ✅',
+          message: isFood
+            ? `Your order ${orderId} has been completed. Thank you!`
+            : `Your order ${orderId} has been dispatched. Thank you!`,
           orderId,
           timestamp: new Date()
         };
@@ -1399,6 +1410,7 @@ const LiveOrderStream = ({ cafeteriaId }: { cafeteriaId: string }) => {
                     onStatusChange={handleStatusChange}
                     onDelete={handleDeleteOrder}
                     onViewDetails={setViewingOrder}
+                    businessType={businessType}
                   />
                 ))}
               </div>
@@ -1438,6 +1450,7 @@ const LiveOrderStream = ({ cafeteriaId }: { cafeteriaId: string }) => {
                   onStatusChange={handleStatusChange}
                   onDelete={handleDeleteOrder}
                   onViewDetails={setViewingOrder}
+                  businessType={businessType}
                 />
               ))}
             </div>

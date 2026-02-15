@@ -7,6 +7,7 @@ import { useStudentAuth } from '@/contexts/StudentAuthContext';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { useToast, ToastContainer } from '@/components/ui/Toast';
 import { Order, OrderStatus } from '@/types';
+import { useBusinesses } from '@/contexts/BusinessContext';
 import QRCode from 'qrcode';
 import { 
   Clock, 
@@ -98,6 +99,88 @@ const statusConfig: Record<OrderStatus, {
     description: 'This order has been cancelled'
   }
 };
+
+// Non-food status config with different wording for grocery/essentials
+const nonFoodStatusConfig: Record<OrderStatus, { 
+  color: string; 
+  bgColor: string; 
+  icon: React.ReactNode; 
+  label: string;
+  description: string;
+}> = {
+  pending: {
+    color: 'text-amber-600 dark:text-amber-400',
+    bgColor: 'bg-amber-50 dark:bg-amber-900/20',
+    icon: <Clock size={32} />,
+    label: 'Order Received',
+    description: 'Your order has been received and is being reviewed'
+  },
+  approved: {
+    color: 'text-blue-600 dark:text-blue-400',
+    bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+    icon: <CreditCard size={32} />,
+    label: 'Payment Required',
+    description: 'Your order is confirmed! Please complete payment'
+  },
+  payment_pending: {
+    color: 'text-blue-600 dark:text-blue-400',
+    bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+    icon: <CreditCard size={32} />,
+    label: 'Payment Required',
+    description: 'Your order is confirmed! Please complete payment'
+  },
+  declined: {
+    color: 'text-red-600 dark:text-red-400',
+    bgColor: 'bg-red-50 dark:bg-red-900/20',
+    icon: <XCircle size={32} />,
+    label: 'Declined',
+    description: 'Sorry, your order request was declined'
+  },
+  confirmed: {
+    color: 'text-green-600 dark:text-green-400',
+    bgColor: 'bg-green-50 dark:bg-green-900/20',
+    icon: <CheckCircle2 size={32} />,
+    label: 'Payment Confirmed',
+    description: 'Payment received! Your order is being processed'
+  },
+  preparing: {
+    color: 'text-purple-600 dark:text-purple-400',
+    bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+    icon: <Package size={32} />,
+    label: 'Packing Your Order',
+    description: 'Your items are being packed and will be ready soon!'
+  },
+  ready: {
+    color: 'text-teal-600 dark:text-teal-400',
+    bgColor: 'bg-teal-50 dark:bg-teal-900/20',
+    icon: <Truck size={32} />,
+    label: 'Ready for Dispatch',
+    description: 'Your order is packed and ready for pickup/dispatch!'
+  },
+  completed: {
+    color: 'text-gray-600 dark:text-gray-400',
+    bgColor: 'bg-gray-50 dark:bg-gray-900/20',
+    icon: <CheckCircle2 size={32} />,
+    label: 'Dispatched',
+    description: 'Your order has been dispatched. Enjoy!'
+  },
+  cancelled: {
+    color: 'text-red-600 dark:text-red-400',
+    bgColor: 'bg-red-50 dark:bg-red-900/20',
+    icon: <XCircle size={32} />,
+    label: 'Cancelled',
+    description: 'This order has been cancelled'
+  }
+};
+
+// Helper to determine if an order is from a food business
+function getStatusConfigForOrder(order: Order, businesses: any[]): typeof statusConfig {
+  const biz = businesses.find(b => b.id === order.cafeteriaId);
+  if (biz && biz.businessType && biz.businessType !== 'food') {
+    return nonFoodStatusConfig;
+  }
+  return statusConfig;
+}
 
 // Payment Modal Component
 interface PaymentModalProps {
@@ -436,6 +519,7 @@ export default function StudentOrdersPage() {
   const router = useRouter();
   const { orders, updateOrderStatus, refreshOrders } = useOrders();
   const { student, isAuthenticated, isLoading } = useStudentAuth();
+  const { businesses } = useBusinesses();
   const { toasts, closeToast, success, info } = useToast();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -509,18 +593,22 @@ export default function StudentOrdersPage() {
           console.log('[StudentOrders] Order status changed:', lastSelectedOrderStatusRef.current, '→', currentOrderInList.status);
           
           // Show appropriate notification based on status change
+          // Determine if this is a food order based on business type
+          const orderBusiness = businesses.find(b => b.id === currentOrderInList.cafeteriaId);
+          const isFood = !orderBusiness || orderBusiness.businessType === 'food';
+          
           if (currentOrderInList.status === 'approved' || currentOrderInList.status === 'payment_pending') {
             infoRef.current('Order approved! Please complete payment 💳');
           } else if (currentOrderInList.status === 'confirmed') {
-            successRef.current('Payment confirmed! Order is being prepared 👨‍🍳');
+            successRef.current(isFood ? 'Payment confirmed! Order is being prepared 👨‍🍳' : 'Payment confirmed! Your order is being packed 📦');
           } else if (currentOrderInList.status === 'preparing') {
-            infoRef.current('Your order is being prepared! 🍳');
+            infoRef.current(isFood ? 'Your order is being prepared! 🍳' : 'Your order is being packed! 📦');
           } else if (currentOrderInList.status === 'ready') {
-            successRef.current('Order is ready for pickup! 🎉');
+            successRef.current(isFood ? 'Order is ready for pickup! 🎉' : 'Order is ready for dispatch! 🚀');
           } else if (currentOrderInList.status === 'completed') {
-            successRef.current('Order completed! Enjoy your meal! 😋');
+            successRef.current(isFood ? 'Order completed! Enjoy your meal! 😋' : 'Order dispatched! 🎉');
           } else if (currentOrderInList.status === 'declined') {
-            infoRef.current('Order was declined by cafeteria');
+            infoRef.current('Order was declined');
           }
           
           lastSelectedOrderStatusRef.current = currentOrderInList.status;
@@ -646,7 +734,8 @@ export default function StudentOrdersPage() {
     return null;
   }
 
-  const config = selectedOrder ? statusConfig[selectedOrder.status] : null;
+  const activeStatusConfig = selectedOrder ? getStatusConfigForOrder(selectedOrder, businesses) : statusConfig;
+  const config = selectedOrder ? activeStatusConfig[selectedOrder.status] : null;
 
   return (
     <>
@@ -716,7 +805,7 @@ export default function StudentOrdersPage() {
             <div className="space-y-3">
               <h2 className="text-lg font-black text-gray-800 dark:text-white mb-4">Your Orders</h2>
               {myOrders.map((order) => {
-                const orderConfig = statusConfig[order.status];
+                const orderConfig = getStatusConfigForOrder(order, businesses)[order.status];
                 const isSelected = selectedOrder?.id === order.id;
                 const needsPayment = order.status === 'approved' || order.status === 'payment_pending';
                 const isPending = order.status === 'pending';
@@ -789,8 +878,14 @@ export default function StudentOrdersPage() {
                         <span>Request</span>
                         <span>Approved</span>
                         <span>Paid</span>
-                        <span>Preparing</span>
-                        <span>Ready</span>
+                        <span>{(() => {
+                          const b = businesses.find(biz => biz.id === selectedOrder.cafeteriaId);
+                          return (!b || b.businessType === 'food') ? 'Preparing' : 'Packing';
+                        })()}</span>
+                        <span>{(() => {
+                          const b = businesses.find(biz => biz.id === selectedOrder.cafeteriaId);
+                          return (!b || b.businessType === 'food') ? 'Ready' : 'Dispatch';
+                        })()}</span>
                       </div>
                     </div>
                   )}
@@ -798,7 +893,10 @@ export default function StudentOrdersPage() {
 
                 <div className="p-6 space-y-6">
                   {/* Pending Approval Alert */}
-                  {selectedOrder.status === 'pending' && (
+                  {selectedOrder.status === 'pending' && (() => {
+                    const b = businesses.find(biz => biz.id === selectedOrder.cafeteriaId);
+                    const isFoodOrder = !b || b.businessType === 'food';
+                    return (
                     <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-5 text-white">
                       <div className="flex items-center gap-3 mb-3">
                         <Clock size={28} className="animate-pulse" />
@@ -809,14 +907,15 @@ export default function StudentOrdersPage() {
                         Please wait while they review your order.
                       </p>
                       <p className="text-white/70 text-sm">
-                        You'll be notified once the cafeteria accepts or declines your order.
+                        You'll be notified once {isFoodOrder ? 'the cafeteria' : 'the store'} accepts or declines your order.
                       </p>
                       <div className="mt-4 flex items-center gap-2 bg-white/20 rounded-xl p-3">
                         <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
-                        <span className="text-sm font-semibold">Waiting for cafeteria response...</span>
+                        <span className="text-sm font-semibold">Waiting for {isFoodOrder ? 'cafeteria' : 'store'} response...</span>
                       </div>
                     </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Payment Required Alert */}
                   {(selectedOrder.status === 'approved' || selectedOrder.status === 'payment_pending') && (
@@ -851,7 +950,7 @@ export default function StudentOrdersPage() {
                         <h3 className="text-xl font-black text-red-700 dark:text-red-400">Order Declined</h3>
                       </div>
                       <p className="text-red-600 dark:text-red-400">
-                        {selectedOrder.partnerNote || 'Your order was declined by the cafeteria. Please try again or contact support.'}
+                        {selectedOrder.partnerNote || 'Your order was declined. Please try again or contact support.'}
                       </p>
                       <button
                         onClick={() => router.push('/')}
@@ -869,7 +968,12 @@ export default function StudentOrdersPage() {
                       <p className="font-black text-gray-900 dark:text-white">{selectedOrder.id}</p>
                     </div>
                     <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4">
-                      <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Cafeteria</p>
+                      <p className="text-xs text-gray-500 uppercase font-semibold mb-1">
+                        {(() => {
+                          const b = businesses.find(biz => biz.id === selectedOrder.cafeteriaId);
+                          return (!b || b.businessType === 'food') ? 'Cafeteria' : 'Store';
+                        })()}
+                      </p>
                       <p className="font-bold text-gray-900 dark:text-white">{selectedOrder.cafeteriaName}</p>
                     </div>
                     <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4">
@@ -937,7 +1041,12 @@ export default function StudentOrdersPage() {
                   {/* Partner Note */}
                   {selectedOrder.partnerNote && selectedOrder.status !== 'declined' && (
                     <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border-l-4 border-blue-500">
-                      <p className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase mb-1">Note from Cafeteria</p>
+                      <p className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase mb-1">
+                        Note from {(() => {
+                          const b = businesses.find(biz => biz.id === selectedOrder.cafeteriaId);
+                          return (!b || b.businessType === 'food') ? 'Cafeteria' : 'Store';
+                        })()}
+                      </p>
                       <p className="text-gray-900 dark:text-white">{selectedOrder.partnerNote}</p>
                     </div>
                   )}

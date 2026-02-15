@@ -28,15 +28,15 @@ const Categories = memo(() => {
 
   const handleBusinessTypeClick = (type: BusinessType) => {
     setActiveBusinessType(type);
-    router.push(`/bite?type=${type}`);
+    router.push(`/order?type=${type}`);
   };
 
   const handleCategoryClick = (categoryName: string) => {
-    router.push(`/bite?category=${encodeURIComponent(categoryName)}`);
+    router.push(`/order?category=${encodeURIComponent(categoryName)}`);
   };
 
   const handleViewAllClick = () => {
-    router.push('/bite');
+    router.push('/order');
   };
 
   return (

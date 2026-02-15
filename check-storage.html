@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head><title>Check Storage</title></head>
+<body>
+<h2>LocalStorage Check</h2>
+<div id="result"></div>
+<script>
+const businesses = JSON.parse(localStorage.getItem('businesses') || '[]');
+const products = JSON.parse(localStorage.getItem('products') || '[]');
+const partners = JSON.parse(localStorage.getItem('partners') || '[]');
+
+document.getElementById('result').innerHTML = `
+  <p><strong>Businesses:</strong> ${businesses.length}</p>
+  <p><strong>Products:</strong> ${products.length}</p>
+  <p><strong>Partners:</strong> ${partners.length}</p>
+  <hr>
+  <p>Grocery Businesses: ${businesses.filter(b => b.type === 'grocery').length}</p>
+  <p>Essentials Businesses: ${businesses.filter(b => b.type === 'daily_essentials').length}</p>
+  <hr>
+  <pre>${JSON.stringify(businesses, null, 2)}</pre>
+`;
+</script>
+</body>
+</html>

@@ -9,13 +9,12 @@ import {
   getBusinessFeatures 
 } from '@/types/business';
 import { Cafeteria } from '@/types/menu';
-import { MOCK_CAFETERIAS } from '@/lib/mockData';
 import { 
   migrateCafeteriaToBusiness, 
   businessToCafeteria,
-  createSampleBusinesses,
   autoMigrate 
 } from '@/lib/migration';
+import { BUSINESSES as SEED_BUSINESSES } from '@/lib/seedBusinessData';
 
 // ============================================
 // CONTEXT TYPE DEFINITION
@@ -84,8 +83,16 @@ export const BusinessProvider = ({ children }: { children: React.ReactNode }) =>
           const parsed = JSON.parse(savedBusinesses);
           const businessData = parsed.map((b: any) => ({
             ...b,
-            createdAt: new Date(b.createdAt),
-            updatedAt: new Date(b.updatedAt)
+            // Normalize: handle old 'type' field vs new 'businessType' field
+            businessType: b.businessType || b.type || 'food',
+            // Ensure categories is always an array
+            categories: b.categories || [],
+            // Ensure slug exists
+            slug: b.slug || b.name?.toLowerCase().replace(/\s+/g, '-') || b.id,
+            // Ensure openingHours exists
+            openingHours: b.openingHours || { open: b.openTime || '08:00', close: b.closeTime || '22:00' },
+            createdAt: new Date(b.createdAt || Date.now()),
+            updatedAt: new Date(b.updatedAt || Date.now())
           }));
           setBusinesses(businessData);
           console.log(`[BusinessContext] Loaded ${businessData.length} businesses from storage`);
@@ -102,13 +109,14 @@ export const BusinessProvider = ({ children }: { children: React.ReactNode }) =>
             const cafeterias: Cafeteria[] = JSON.parse(savedCafeterias);
             const migratedBusinesses = cafeterias.map(migrateCafeteriaToBusiness);
             
-            // Add sample businesses for other types
-            const sampleBusinesses = createSampleBusinesses();
-            const allBusinesses = [...migratedBusinesses, ...sampleBusinesses];
+            // Merge migrated cafeterias with seed businesses (avoiding duplicates)
+            const migratedIds = new Set(migratedBusinesses.map(b => b.id));
+            const extraSeedBusinesses = SEED_BUSINESSES.filter(b => !migratedIds.has(b.id));
+            const allBusinesses = [...migratedBusinesses, ...extraSeedBusinesses];
             
             setBusinesses(allBusinesses);
             localStorage.setItem('businesses', JSON.stringify(allBusinesses));
-            console.log(`[BusinessContext] Migrated ${migratedBusinesses.length} cafeterias + ${sampleBusinesses.length} samples`);
+            console.log(`[BusinessContext] Migrated ${migratedBusinesses.length} cafeterias + ${extraSeedBusinesses.length} seed businesses`);
           } catch (error) {
             console.error('[BusinessContext] Migration failed:', error);
             initializeWithDefaultData();
@@ -123,20 +131,11 @@ export const BusinessProvider = ({ children }: { children: React.ReactNode }) =>
     };
     
     const initializeWithDefaultData = () => {
-      // Convert mock cafeterias to businesses
-      const foodBusinesses = MOCK_CAFETERIAS.map(migrateCafeteriaToBusiness);
+      // Use seed businesses as the single source of truth
+      setBusinesses(SEED_BUSINESSES);
+      localStorage.setItem('businesses', JSON.stringify(SEED_BUSINESSES));
       
-      // Add sample businesses for other types
-      const sampleBusinesses = createSampleBusinesses();
-      
-      const allBusinesses = [...foodBusinesses, ...sampleBusinesses];
-      setBusinesses(allBusinesses);
-      localStorage.setItem('businesses', JSON.stringify(allBusinesses));
-      
-      // Also save cafeterias for backward compatibility
-      localStorage.setItem('cafeterias', JSON.stringify(MOCK_CAFETERIAS));
-      
-      console.log('[BusinessContext] Initialized with default data');
+      console.log('[BusinessContext] Initialized with seed data:', SEED_BUSINESSES.length, 'businesses');
     };
     
     initializeBusinesses();
@@ -154,6 +153,9 @@ export const BusinessProvider = ({ children }: { children: React.ReactNode }) =>
       const foodBusinesses = businesses.filter(b => b.businessType === 'food');
       const cafeterias = foodBusinesses.map(businessToCafeteria);
       localStorage.setItem('cafeterias', JSON.stringify(cafeterias));
+      
+      // Dispatch custom event so CafeteriaContext can re-sync in same tab
+      window.dispatchEvent(new Event('businesses-updated'));
     }
   }, [businesses, isInitialized]);
 
@@ -206,7 +208,7 @@ export const BusinessProvider = ({ children }: { children: React.ReactNode }) =>
     if (!business) return [];
     
     // Return business-specific categories or default for type
-    return business.categories.length > 0 
+    return business.categories && business.categories.length > 0 
       ? business.categories 
       : CATEGORY_MAP[business.businessType];
   }, [businesses]);
@@ -295,11 +297,22 @@ export const useCafeterias = () => {
 
 /**
  * Hook for getting business by current partner
+ * Accepts either a partnerId or a businessId and finds the matching business
  */
-export const useCurrentBusiness = (partnerId: string | undefined) => {
-  const { getBusinessByPartnerId, getFeatures, getCategoriesForBusiness } = useBusinesses();
+export const useCurrentBusiness = (idOrPartnerId: string | undefined) => {
+  const { businesses, getBusinessByPartnerId, getFeatures, getCategoriesForBusiness } = useBusinesses();
   
-  const business = partnerId ? getBusinessByPartnerId(partnerId) : undefined;
+  let business: ReturnType<typeof getBusinessByPartnerId> = undefined;
+  
+  if (idOrPartnerId) {
+    // First try to find by partnerId
+    business = getBusinessByPartnerId(idOrPartnerId);
+    // If not found, try by business id directly
+    if (!business) {
+      business = businesses.find(b => b.id === idOrPartnerId);
+    }
+  }
+  
   const features = business ? getFeatures(business.id) : null;
   const categories = business ? getCategoriesForBusiness(business.id) : [];
   

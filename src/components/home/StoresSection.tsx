@@ -59,15 +59,11 @@ const StoresSection = memo(() => {
     .slice(0, 3);
 
   const handleStoreClick = (storeId: string, type: string) => {
-    if (type === 'food') {
-      router.push(`/order/${storeId}`);
-    } else {
-      router.push(`/stores`);
-    }
+    router.push(`/order/${storeId}`);
   };
 
   const handleViewAllClick = (category: string) => {
-    router.push(`/stores?type=${category}`);
+    router.push(`/order?type=${category}`);
   };
 
   // Store Card Component

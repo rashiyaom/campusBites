@@ -15,7 +15,7 @@ const EditMenuItem = () => {
   const itemId = params.id as string;
   const { user, isAuthenticated } = useAuth();
   const { products, updateProduct } = useProducts();
-  const { business } = useCurrentBusiness(user?.id);
+  const { business } = useCurrentBusiness(user?.businessId || user?.cafeteriaId);
 
   const [isDark, setIsDark] = useState(false);
   const [isLoading, setIsLoading] = useState(true);

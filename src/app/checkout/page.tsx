@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import {
   MapPin,
   ShoppingBag,
@@ -28,6 +28,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useCafeterias } from '@/contexts/CafeteriaContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrders } from '@/contexts/OrderContext';
+import { useBusinesses } from '@/contexts/BusinessContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { Order } from '@/types';
@@ -138,17 +139,19 @@ const OrderTrackingView = ({
   total,
   estTime,
   onReset,
+  isFood = true,
 }: {
   orderId: string;
   cart: any[];
   total: number;
   estTime: number;
   onReset: () => void;
+  isFood?: boolean;
 }) => {
   const [currentStage, setCurrentStage] = useState(0);
   const [timeLeft, setTimeLeft] = useState(estTime * 60);
 
-  const stages = [
+  const stages = isFood ? [
     {
       title: 'Order Confirmed',
       desc: 'Your order has been received',
@@ -170,6 +173,31 @@ const OrderTrackingView = ({
     {
       title: 'Ready for Pickup',
       desc: 'Come grab your order!',
+      icon: ShoppingBag,
+      bg: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&q=80',
+    },
+  ] : [
+    {
+      title: 'Order Received',
+      desc: 'Your order has been received',
+      icon: Receipt,
+      bg: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&q=80',
+    },
+    {
+      title: 'Packing Your Order',
+      desc: 'Items are being packed',
+      icon: Package,
+      bg: 'https://images.unsplash.com/photo-1556910102-9a0a7879aa32?w=800&q=80',
+    },
+    {
+      title: 'Quality Check',
+      desc: 'Ensuring everything is correct',
+      icon: Search,
+      bg: 'https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf?w=800&q=80',
+    },
+    {
+      title: 'Ready for Dispatch',
+      desc: 'Your order is ready!',
       icon: ShoppingBag,
       bg: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&q=80',
     },
@@ -372,13 +400,14 @@ const OrderTrackingView = ({
 };
 
 // Main Checkout Page Component
-export default function CheckoutPage() {
+function CheckoutPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth(); // Partner auth (kept for backward compatibility)
   const { cafeCarts, getCafeCartTotal, getCafeCartCount, appliedPromo, applyPromoCode, removePromoCode, clearCafeCart } = useCart();
   const { cafeterias } = useCafeterias();
   const { addOrder } = useOrders();
+  const { businesses } = useBusinesses();
   
   // Get the cafe ID from query params
   const cafeIdFromQuery = searchParams.get('cafe');
@@ -387,6 +416,10 @@ export default function CheckoutPage() {
   const activeCafeId = cafeIdFromQuery || Object.keys(cafeCarts)[0] || '';
   const currentCart = cafeCarts[activeCafeId];
   const cartItems = currentCart?.items || [];
+  
+  // Determine if this is a food order
+  const activeBusiness = businesses.find(b => b.id === activeCafeId);
+  const isFood = !activeBusiness || activeBusiness.businessType === 'food';
     // Get student authentication (primary for checkout)
   const studentAuth = useStudentAuth ? useStudentAuth() : null;
   const student = studentAuth?.student || null;
@@ -553,7 +586,7 @@ export default function CheckoutPage() {
 
             <div className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-5 border border-amber-200 dark:border-amber-800">
               <p className="text-amber-700 dark:text-amber-400 font-medium">
-                ⏳ Waiting for cafeteria approval
+                ⏳ Waiting for {isFood ? 'cafeteria' : 'store'} approval
               </p>
               <p className="text-sm text-amber-600 dark:text-amber-500 mt-2">
                 Once approved, you'll be notified to complete payment
@@ -561,7 +594,7 @@ export default function CheckoutPage() {
             </div>
 
             <p className="text-gray-500 dark:text-gray-400 text-sm">
-              The cafeteria will review your order shortly. Payment is required only after approval.
+              {isFood ? 'The cafeteria' : 'The store'} will review your order shortly. Payment is required only after approval.
             </p>
 
             <button
@@ -933,5 +966,17 @@ export default function CheckoutPage() {
         }
       `}</style>
     </>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    }>
+      <CheckoutPageContent />
+    </Suspense>
   );
 }

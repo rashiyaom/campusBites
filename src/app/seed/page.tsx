@@ -38,6 +38,8 @@ export default function SeedPage() {
     const result = seedAllBusinessData();
     setSeedResult(result);
     setIsComplete(true);
+    // Force reload so all contexts re-initialize with fresh data
+    setTimeout(() => window.location.reload(), 500);
   };
 
   const copyToClipboard = (text: string, email: string) => {
@@ -223,7 +225,7 @@ export default function SeedPage() {
             {(['food', 'grocery', 'stationery', 'daily_essentials'] as BusinessType[]).map((type) => {
               const config = BUSINESS_UI_CONFIG[type];
               const products = SAMPLE_PRODUCTS.filter(p => p.businessType === type);
-              const business = BUSINESSES.find(b => b.type === type);
+              const business = BUSINESSES.find(b => b.businessType === type);
               
               return (
                 <div
@@ -264,7 +266,7 @@ export default function SeedPage() {
         {/* Navigation */}
         <div className="flex flex-wrap gap-4 justify-center">
           <button
-            onClick={() => router.push('/bite')}
+            onClick={() => router.push('/order')}
             className="px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl font-bold flex items-center gap-2 hover:shadow-lg transition-all"
           >
             Browse Products <ArrowRight size={18} />

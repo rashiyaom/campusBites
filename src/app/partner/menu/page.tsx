@@ -13,7 +13,7 @@ const MenuManager = () => {
   const { user, isAuthenticated, getCafeteria } = useAuth();
   const { getProductsByBusiness, updateProduct, deleteProduct, toggleProductAvailability } = useProducts();
   const cafeteria = getCafeteria();
-  const { business } = useCurrentBusiness(user?.id);
+  const { business } = useCurrentBusiness(user?.businessId || user?.cafeteriaId);
   
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');

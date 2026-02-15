@@ -43,8 +43,8 @@ You should now see **10 demo accounts**:
 - admin@hygieneplus.com
 - admin@studentstore.com
 
-### 5. Verify on Stores Page
-Go to: **http://localhost:3000/stores**
+### 5. Verify on Order Page
+Go to: **http://localhost:3000/order**
 
 - Click **"Grocery"** tab → Should see 4 grocery stores with products
 - Click **"Essentials"** tab → Should see 4 essentials stores with products
@@ -95,7 +95,7 @@ Go to: **http://localhost:3000/stores**
 ### Products Not Showing?
 1. Go to `/seed` page
 2. Click "Seed All Business Data"
-3. Refresh the `/stores` page
+3. Refresh the `/order` page
 
 ### Login Credentials Not Showing All 10 Accounts?
 1. Clear browser localStorage (F12 → Application → Storage → Clear)
@@ -122,9 +122,9 @@ The seed function checks for existing data and only adds new items, so you can s
 
 After seeding, you should see:
 - [ ] 10 login credentials on `/login` page
-- [ ] Products in Cafeterias section on `/stores`
-- [ ] Products in Groceries section on `/stores`
-- [ ] Products in Essentials section on `/stores`
+- [ ] Products in Cafeterias section on `/order`
+- [ ] Products in Groceries section on `/order`
+- [ ] Products in Essentials section on `/order`
 - [ ] All 4 grocery stores visible when clicking Grocery tab
 - [ ] All 4 essentials stores visible when clicking Essentials tab
 - [ ] Partner can log in and see their products on dashboard

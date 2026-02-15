@@ -14,7 +14,7 @@ const NewProductPage = () => {
   const { user, isAuthenticated, getCafeteria } = useAuth();
   const { addProduct } = useProducts();
   const cafeteria = getCafeteria();
-  const { business } = useCurrentBusiness(user?.id);
+  const { business } = useCurrentBusiness(user?.businessId || user?.cafeteriaId);
   
   const [isDark, setIsDark] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);

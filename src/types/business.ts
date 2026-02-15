@@ -227,24 +227,116 @@ export const BUSINESS_FEATURES: Record<BusinessType, BusinessFeatureFlags> = {
 export const ORDER_STATUS_CONFIG: Record<BusinessType, {
   statuses: string[];
   skipStatuses: string[];
+  labels: Record<string, string>;
+  icons: Record<string, string>;
 }> = {
   food: {
     statuses: ['pending', 'approved', 'confirmed', 'preparing', 'ready', 'completed'],
-    skipStatuses: [] // All statuses apply
+    skipStatuses: [],
+    labels: {
+      pending: 'Pending Approval',
+      approved: 'Awaiting Payment',
+      payment_pending: 'Awaiting Payment',
+      declined: 'Declined',
+      confirmed: 'Confirmed',
+      preparing: 'Preparing',
+      ready: 'Ready for Pickup',
+      completed: 'Completed',
+      cancelled: 'Cancelled'
+    },
+    icons: {
+      pending: '⏳',
+      approved: '💳',
+      confirmed: '✅',
+      preparing: '👨‍🍳',
+      ready: '🔔',
+      completed: '🎉',
+      cancelled: '❌'
+    }
   },
   grocery: {
-    statuses: ['pending', 'approved', 'confirmed', 'packing', 'ready', 'completed'],
-    skipStatuses: ['preparing'] // Skip "preparing" - use "packing" instead
+    statuses: ['pending', 'approved', 'confirmed', 'preparing', 'ready', 'completed'],
+    skipStatuses: [],
+    labels: {
+      pending: 'Order Received',
+      approved: 'Awaiting Payment',
+      payment_pending: 'Awaiting Payment',
+      declined: 'Declined',
+      confirmed: 'Payment Confirmed',
+      preparing: 'Packing Your Order',
+      ready: 'Ready for Dispatch',
+      completed: 'Dispatched',
+      cancelled: 'Cancelled'
+    },
+    icons: {
+      pending: '📦',
+      approved: '💳',
+      confirmed: '✅',
+      preparing: '📦',
+      ready: '🚀',
+      completed: '✅',
+      cancelled: '❌'
+    }
   },
   stationery: {
-    statuses: ['pending', 'approved', 'confirmed', 'packing', 'ready', 'completed'],
-    skipStatuses: ['preparing']
+    statuses: ['pending', 'approved', 'confirmed', 'preparing', 'ready', 'completed'],
+    skipStatuses: [],
+    labels: {
+      pending: 'Order Received',
+      approved: 'Awaiting Payment',
+      payment_pending: 'Awaiting Payment',
+      declined: 'Declined',
+      confirmed: 'Payment Confirmed',
+      preparing: 'Packing Your Order',
+      ready: 'Ready for Pickup',
+      completed: 'Dispatched',
+      cancelled: 'Cancelled'
+    },
+    icons: {
+      pending: '📦',
+      approved: '💳',
+      confirmed: '✅',
+      preparing: '📦',
+      ready: '🚀',
+      completed: '✅',
+      cancelled: '❌'
+    }
   },
   daily_essentials: {
-    statuses: ['pending', 'approved', 'confirmed', 'packing', 'ready', 'completed'],
-    skipStatuses: ['preparing']
+    statuses: ['pending', 'approved', 'confirmed', 'preparing', 'ready', 'completed'],
+    skipStatuses: [],
+    labels: {
+      pending: 'Order Received',
+      approved: 'Awaiting Payment',
+      payment_pending: 'Awaiting Payment',
+      declined: 'Declined',
+      confirmed: 'Payment Confirmed',
+      preparing: 'Packing Your Order',
+      ready: 'Ready for Dispatch',
+      completed: 'Dispatched',
+      cancelled: 'Cancelled'
+    },
+    icons: {
+      pending: '📦',
+      approved: '💳',
+      confirmed: '✅',
+      preparing: '📦',
+      ready: '🚀',
+      completed: '✅',
+      cancelled: '❌'
+    }
   }
 };
+
+// Helper function to get order status label based on business type
+export function getOrderStatusLabel(status: string, businessType: BusinessType = 'food'): string {
+  return ORDER_STATUS_CONFIG[businessType]?.labels?.[status] || status;
+}
+
+// Helper function to get order status icon based on business type  
+export function getOrderStatusIcon(status: string, businessType: BusinessType = 'food'): string {
+  return ORDER_STATUS_CONFIG[businessType]?.icons?.[status] || '📋';
+}
 
 // ============================================
 // UI CONFIGURATION BY BUSINESS TYPE

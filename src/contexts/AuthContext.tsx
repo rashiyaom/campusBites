@@ -66,12 +66,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     if (partner) {
+      const businessId = partner.businessId || partner.cafeteriaId;
       const user: User = {
-        id: partner.id || partner.cafeteriaId,
+        id: partner.id || businessId,
         email: partner.email,
         name: partner.name,
         role: 'partner',
-        cafeteriaId: partner.businessId || partner.cafeteriaId
+        cafeteriaId: businessId,  // backward compat
+        businessId: businessId,   // new field
+        businessType: partner.businessType,
       };
 
       setAuthState({
@@ -106,21 +109,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const getCafeteria = useCallback(() => {
-    if (authState.user?.cafeteriaId) {
-      // Try to get from localStorage first (for updated data)
-      const savedCafeterias = localStorage.getItem('cafeterias');
-      if (savedCafeterias) {
-        try {
-          const cafeterias = JSON.parse(savedCafeterias);
-          return cafeterias.find((c: any) => c.id === authState.user?.cafeteriaId);
-        } catch (error) {
-          console.error('Failed to load cafeterias:', error);
+    const businessId = authState.user?.businessId || authState.user?.cafeteriaId;
+    if (!businessId) return null;
+
+    // Try businesses from localStorage first (new system)
+    const savedBusinesses = localStorage.getItem('businesses');
+    if (savedBusinesses) {
+      try {
+        const businesses = JSON.parse(savedBusinesses);
+        const found = businesses.find((b: any) => b.id === businessId);
+        if (found) {
+          // Normalize to cafeteria-like shape for backward compat
+          return {
+            id: found.id,
+            name: found.name,
+            slug: found.slug,
+            description: found.description,
+            image: found.image,
+            location: found.location,
+            rating: found.rating,
+            isOpen: found.isOpen,
+            openingHours: found.openingHours || { open: '08:00', close: '22:00' },
+            categories: found.categories || [],
+            partnerId: found.partnerId,
+            businessType: found.businessType,
+          };
         }
+      } catch (error) {
+        console.error('Failed to load businesses:', error);
       }
-      // Fallback to MOCK_CAFETERIAS
-      return MOCK_CAFETERIAS.find(c => c.id === authState.user?.cafeteriaId);
     }
-    return null;
+
+    // Fallback to cafeterias localStorage
+    const savedCafeterias = localStorage.getItem('cafeterias');
+    if (savedCafeterias) {
+      try {
+        const cafeterias = JSON.parse(savedCafeterias);
+        return cafeterias.find((c: any) => c.id === businessId);
+      } catch (error) {
+        console.error('Failed to load cafeterias:', error);
+      }
+    }
+
+    // Final fallback to MOCK_CAFETERIAS
+    return MOCK_CAFETERIAS.find(c => c.id === businessId) || null;
   }, [authState.user]);
 
   return (

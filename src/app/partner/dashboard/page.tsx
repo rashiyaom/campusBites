@@ -8,7 +8,9 @@ import { useMenu } from '@/contexts/MenuContext';
 import { useInventory } from '@/contexts/InventoryContext';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useCurrentBusiness } from '@/contexts/BusinessContext';
-import { BUSINESS_UI_CONFIG, BusinessType } from '@/types/business';
+import { useProducts } from '@/contexts/ProductContext';
+import { BUSINESS_UI_CONFIG, BusinessType, getOrderStatusLabel, getOrderStatusIcon } from '@/types/business';
+import { productToMenuItem } from '@/lib/migration';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { useToast, ToastContainer } from '@/components/ui/Toast';
 import { OrderStatus } from '@/types';
@@ -71,12 +73,13 @@ const PartnerDashboard = () => {
   const { getMenuItemsByCafeteria } = useMenu();
   const { getInventoryByCafeteria, getLowStockItems, updateStock, restockItem } = useInventory();
   const { getAnalytics } = useAnalytics();
-  const { business } = useCurrentBusiness(user?.id);
+  const { business } = useCurrentBusiness(user?.businessId || user?.cafeteriaId);
+  const { getProductsByBusiness } = useProducts();
   const { toasts, closeToast, success, info } = useToast();
   const cafeteria = getCafeteria();
   
   // Business type configuration
-  const businessType: BusinessType = (business as any)?.type || 'food';
+  const businessType: BusinessType = business?.businessType || 'food';
   const uiConfig = BUSINESS_UI_CONFIG[businessType];
   
   const [isDark, setIsDark] = useState(false);
@@ -218,10 +221,23 @@ const PartnerDashboard = () => {
     return cafeteriaOrders;
   }, [cafeteria?.id, allOrders]);
   
-  const menuItems = React.useMemo(() => 
-    cafeteria ? getMenuItemsByCafeteria(cafeteria.id) : [], 
-    [cafeteria?.id, getMenuItemsByCafeteria]
-  );
+  const menuItems = React.useMemo(() => {
+    const bid = business?.id || cafeteria?.id;
+    if (!bid) return [];
+    
+    // Get products from ProductContext (single source of truth)
+    const bizProducts = getProductsByBusiness(bid);
+    const productMenuItems = bizProducts.map(productToMenuItem);
+    
+    // Also get old menu items for backward compatibility (food businesses only)
+    const oldMenuItems = cafeteria ? getMenuItemsByCafeteria(cafeteria.id) : [];
+    
+    // Merge: products take priority, add any old items not already in products
+    const productIds = new Set(productMenuItems.map(p => p.id));
+    const extraOldItems = oldMenuItems.filter(item => !productIds.has(item.id));
+    
+    return [...productMenuItems, ...extraOldItems];
+  }, [business?.id, cafeteria?.id, getProductsByBusiness, getMenuItemsByCafeteria]);
   
   const today = React.useMemo(() => {
     const date = new Date();
@@ -326,7 +342,7 @@ const PartnerDashboard = () => {
   }, [menuItems, searchQuery]);
 
   // Early return AFTER all hooks have been called
-  if (!isAuthenticated || !user || !cafeteria || isAuthChecking) {
+  if (!isAuthenticated || !user || (!cafeteria && !business) || isAuthChecking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
         <div className="text-center">
@@ -617,7 +633,7 @@ const PartnerDashboard = () => {
                   order.status === 'preparing' ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' :
                   'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400'
                 }`}>
-                  {order.status}
+                  {getOrderStatusLabel(order.status, businessType)}
                 </span>
               </div>
             ))}
@@ -867,7 +883,7 @@ const PartnerDashboard = () => {
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search menu items..."
+            placeholder={businessType === 'food' ? 'Search menu items...' : 'Search products...'}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg text-gray-900 dark:text-white"
@@ -886,13 +902,13 @@ const PartnerDashboard = () => {
       {filteredMenuItems.length === 0 ? (
         <div className="bg-white dark:bg-gray-900 rounded-xl p-12 text-center border border-gray-200 dark:border-gray-800">
           <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-            <Utensils size={32} className="text-gray-400" />
+            {businessType === 'food' ? <Utensils size={32} className="text-gray-400" /> : <Package size={32} className="text-gray-400" />}
           </div>
           <h4 className="text-lg font-black text-gray-900 dark:text-white mb-2">
-            {searchQuery ? 'No items found' : 'No Menu Items Yet'}
+            {searchQuery ? 'No items found' : businessType === 'food' ? 'No Menu Items Yet' : 'No Products Yet'}
           </h4>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-            {searchQuery ? 'Try a different search term' : 'Start by adding your first menu item'}
+            {searchQuery ? 'Try a different search term' : businessType === 'food' ? 'Start by adding your first menu item' : 'Start by adding your first product'}
           </p>
           {!searchQuery && (
             <button
@@ -955,11 +971,12 @@ const PartnerDashboard = () => {
     </div>  );
   // ========== ORDERS TAB ==========
   const renderOrdersTab = () => {
-    if (!cafeteria) return null;
+    const ordersId = business?.id || cafeteria?.id;
+    if (!ordersId) return null;
     
     return (
       <div className="space-y-6">
-        <LiveOrderStream cafeteriaId={cafeteria.id} />
+        <LiveOrderStream cafeteriaId={ordersId} businessType={businessType} />
       </div>
     );
   };
@@ -1279,7 +1296,7 @@ const PartnerDashboard = () => {
             >
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <Utensils size={16} className="sm:w-[18px] sm:h-[18px]" />
-                <span className="hidden xs:inline">Menu</span>
+                <span className="hidden xs:inline">{businessType === 'food' ? 'Menu' : 'Products'}</span>
                 <span className="hidden sm:inline">({menuItems.length})</span>
               </div>
             </button>
@@ -1353,6 +1370,7 @@ const PartnerDashboard = () => {
           }}
           onUpdateStatus={handleUpdateOrderStatus}
           onSetEstimatedTime={setOrderEstimatedTime}
+          businessType={businessType}
         />
       )}
       </div>
@@ -1365,12 +1383,14 @@ const OrderManagementModal = ({
   order, 
   onClose, 
   onUpdateStatus,
-  onSetEstimatedTime 
+  onSetEstimatedTime,
+  businessType = 'food'
 }: { 
   order: any; 
   onClose: () => void; 
   onUpdateStatus: (orderId: string, status: OrderStatus) => void;
   onSetEstimatedTime: (orderId: string, minutes: number) => void;
+  businessType?: BusinessType;
 }) => {
   const [isLoaded, setIsLoaded] = React.useState(false);
 
@@ -1378,13 +1398,23 @@ const OrderManagementModal = ({
     setTimeout(() => setIsLoaded(true), 50);
   }, []);
 
-  const statusOptions: { value: OrderStatus; label: string; color: string; icon: string }[] = [
-    { value: 'pending', label: 'Pending', color: 'bg-yellow-500', icon: '⏳' },
-    { value: 'preparing', label: 'Preparing', color: 'bg-blue-500', icon: '👨‍🍳' },
-    { value: 'ready', label: 'Ready', color: 'bg-green-500', icon: '✅' },
-    { value: 'completed', label: 'Done', color: 'bg-gray-500', icon: '🎉' },
-    { value: 'cancelled', label: 'Cancel', color: 'bg-red-500', icon: '❌' },
-  ];
+  const isFood = businessType === 'food';
+
+  const statusOptions: { value: OrderStatus; label: string; color: string; icon: string }[] = isFood
+    ? [
+        { value: 'pending', label: 'Pending', color: 'bg-yellow-500', icon: '⏳' },
+        { value: 'preparing', label: 'Preparing', color: 'bg-blue-500', icon: '👨‍🍳' },
+        { value: 'ready', label: 'Ready', color: 'bg-green-500', icon: '✅' },
+        { value: 'completed', label: 'Done', color: 'bg-gray-500', icon: '🎉' },
+        { value: 'cancelled', label: 'Cancel', color: 'bg-red-500', icon: '❌' },
+      ]
+    : [
+        { value: 'pending', label: 'Order Received', color: 'bg-yellow-500', icon: '📦' },
+        { value: 'preparing', label: 'Packing', color: 'bg-blue-500', icon: '📦' },
+        { value: 'ready', label: 'Ready for Dispatch', color: 'bg-green-500', icon: '🚀' },
+        { value: 'completed', label: 'Dispatched', color: 'bg-gray-500', icon: '✅' },
+        { value: 'cancelled', label: 'Cancel', color: 'bg-red-500', icon: '❌' },
+      ];
 
   const currentStatus = statusOptions.find(opt => opt.value === order.status);
 
@@ -1410,7 +1440,7 @@ const OrderManagementModal = ({
                   <h2 className="text-xl sm:text-2xl font-black text-white mb-1">Order #{order.id.slice(0, 8).toUpperCase()}</h2>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className={`px-3 py-1 rounded-full text-xs font-bold ${currentStatus?.color || 'bg-red-500'} text-white border border-white/20`}>
-                      {order.status.toUpperCase()}
+                      {(currentStatus?.label || order.status).toUpperCase()}
                     </span>
                     <span className="text-gray-400 text-xs sm:text-sm">
                       {new Date(order.createdAt).toLocaleString('en-US', { 

@@ -9,14 +9,11 @@ import {
   BUSINESS_FEATURES 
 } from '@/types/business';
 import { MenuItem } from '@/types/menu';
-import { SEED_MENU_ITEMS } from '@/lib/seedMenuItems';
 import { 
   migrateMenuItemToProduct, 
-  productToMenuItem,
-  SAMPLE_GROCERY_PRODUCTS,
-  SAMPLE_STATIONERY_PRODUCTS,
-  SAMPLE_ESSENTIALS_PRODUCTS
+  productToMenuItem
 } from '@/lib/migration';
+import { SAMPLE_PRODUCTS as SEED_PRODUCTS } from '@/lib/seedBusinessData';
 import { triggerSync } from '@/hooks/useRealtimeSync';
 
 // ============================================
@@ -120,13 +117,14 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
             }));
             const migratedProducts = menuItems.map(migrateMenuItemToProduct);
             
-            // Add sample products for other business types
-            const sampleProducts = createSampleProducts();
-            const allProducts = [...migratedProducts, ...sampleProducts];
+            // Merge migrated food products with seed products (avoid duplicates)
+            const migratedIds = new Set(migratedProducts.map((p: any) => p.id));
+            const extraSeedProducts = SEED_PRODUCTS.filter(p => !migratedIds.has(p.id));
+            const allProducts = [...migratedProducts, ...extraSeedProducts];
             
             setProducts(allProducts);
             localStorage.setItem('products', JSON.stringify(allProducts));
-            console.log(`[ProductContext] Migrated ${migratedProducts.length} + ${sampleProducts.length} samples`);
+            console.log(`[ProductContext] Migrated ${migratedProducts.length} + ${extraSeedProducts.length} seed products`);
           } catch (error) {
             console.error('[ProductContext] Migration failed:', error);
             initializeWithDefaultData();
@@ -141,78 +139,15 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
     };
     
     const initializeWithDefaultData = () => {
-      // Convert seed menu items to products
-      const foodProducts = SEED_MENU_ITEMS.map((item, idx) => 
-        migrateMenuItemToProduct({
-          ...item,
-          id: `item-${Date.now()}-${idx}`,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })
-      );
+      // Use seed products as the single source of truth
+      setProducts(SEED_PRODUCTS);
+      localStorage.setItem('products', JSON.stringify(SEED_PRODUCTS));
       
-      // Add sample products for other types
-      const sampleProducts = createSampleProducts();
-      
-      const allProducts = [...foodProducts, ...sampleProducts];
-      setProducts(allProducts);
-      localStorage.setItem('products', JSON.stringify(allProducts));
-      
-      // Also save as menuItems for backward compatibility
-      localStorage.setItem('menuItems', JSON.stringify(foodProducts.map(productToMenuItem)));
-      
-      console.log('[ProductContext] Initialized with default data');
+      console.log('[ProductContext] Initialized with seed data:', SEED_PRODUCTS.length, 'products');
     };
     
     initializeProducts();
   }, []);
-
-  // Helper to create sample products for non-food businesses
-  const createSampleProducts = (): Product[] => {
-    const timestamp = Date.now();
-    const samples: Product[] = [];
-    
-    // Grocery products
-    SAMPLE_GROCERY_PRODUCTS.forEach((p, idx) => {
-      samples.push({
-        ...p,
-        id: `grocery-product-${timestamp}-${idx}`,
-        businessId: 'grocery-1',
-        rating: 4.5,
-        reviewCount: Math.floor(Math.random() * 100),
-        createdAt: new Date(),
-        updatedAt: new Date()
-      } as Product);
-    });
-    
-    // Stationery products
-    SAMPLE_STATIONERY_PRODUCTS.forEach((p, idx) => {
-      samples.push({
-        ...p,
-        id: `stationery-product-${timestamp}-${idx}`,
-        businessId: 'stationery-1',
-        rating: 4.6,
-        reviewCount: Math.floor(Math.random() * 100),
-        createdAt: new Date(),
-        updatedAt: new Date()
-      } as Product);
-    });
-    
-    // Essentials products
-    SAMPLE_ESSENTIALS_PRODUCTS.forEach((p, idx) => {
-      samples.push({
-        ...p,
-        id: `essentials-product-${timestamp}-${idx}`,
-        businessId: 'essentials-1',
-        rating: 4.4,
-        reviewCount: Math.floor(Math.random() * 100),
-        createdAt: new Date(),
-        updatedAt: new Date()
-      } as Product);
-    });
-    
-    return samples;
-  };
 
   // ==========================================
   // PERSISTENCE

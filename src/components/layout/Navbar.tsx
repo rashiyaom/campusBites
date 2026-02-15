@@ -48,7 +48,7 @@ const Navbar: React.FC<NavbarProps> = ({ isDark, toggleTheme }) => {
             <div className="bg-red-500 p-2 rounded-xl text-white shadow-lg shadow-red-500/30">
               <Utensils size={24} strokeWidth={2.5} />
             </div>
-            <span className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white">
+            <span className={`text-2xl font-black tracking-tighter transition-colors ${isScrolled ? 'text-gray-900 dark:text-white' : 'text-white lg:text-gray-900 lg:dark:text-white'}`}>
               Campus<span className="text-red-500">Bite</span>
             </span>
           </Link>
@@ -56,7 +56,6 @@ const Navbar: React.FC<NavbarProps> = ({ isDark, toggleTheme }) => {
         
         <div className="hidden md:flex items-center gap-6 font-medium text-gray-700 dark:text-gray-300">
           <Link href="/order" className="hover:text-red-500 transition-colors">Cafeterias</Link>
-          <Link href="/stores" className="hover:text-red-500 transition-colors">Store</Link>
           <a href="#" className="hover:text-red-500 transition-colors">Delivery Map</a>
           
           {isAuthenticated && student && (
@@ -82,7 +81,7 @@ const Navbar: React.FC<NavbarProps> = ({ isDark, toggleTheme }) => {
           
           {/* Cart Icon */}
           <Link
-            href="/stores"
+            href="/order"
             className="relative p-2.5 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/30 border-2 border-transparent hover:border-red-300 dark:hover:border-red-700 transition-all transform hover:scale-110"
           >
             <ShoppingBag size={20} className="text-gray-700 dark:text-gray-300" />
@@ -129,11 +128,11 @@ const Navbar: React.FC<NavbarProps> = ({ isDark, toggleTheme }) => {
         <div className="flex items-center gap-4 md:hidden">
           <button 
             onClick={toggleTheme}
-            className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-yellow-400"
+            className={`p-2 rounded-full transition-colors ${isScrolled ? 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-yellow-400' : 'bg-white/15 backdrop-blur-sm text-yellow-400 lg:bg-gray-100 lg:dark:bg-gray-800 lg:text-gray-800 lg:dark:text-yellow-400'}`}
           >
             {isDark ? <Sun size={20} /> : <Moon size={20} />}
           </button>
-          <button className="text-gray-800 dark:text-white" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+          <button className={`transition-colors ${isScrolled ? 'text-gray-800 dark:text-white' : 'text-white lg:text-gray-800 lg:dark:text-white'}`} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
         </div>
@@ -143,12 +142,11 @@ const Navbar: React.FC<NavbarProps> = ({ isDark, toggleTheme }) => {
       {isMobileMenuOpen && (
         <div className="md:hidden absolute top-full left-0 w-full bg-white dark:bg-gray-900 shadow-xl border-t border-gray-100 dark:border-gray-800 p-4 flex flex-col gap-4">
           <Link href="/order" className="text-lg font-medium text-gray-800 dark:text-gray-200">Cafeterias</Link>
-          <Link href="/stores" className="text-lg font-medium text-gray-800 dark:text-gray-200">Store</Link>
           <a href="#" className="text-lg font-medium text-gray-800 dark:text-gray-200">Delivery Map</a>
           
           {/* Cart Button for Mobile */}
           <Link 
-            href="/stores"
+            href="/order"
             className="relative bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-4 py-3 rounded-xl font-bold border-2 border-gray-300 dark:border-gray-700 flex items-center justify-center gap-2"
           >
             <ShoppingBag size={20} />

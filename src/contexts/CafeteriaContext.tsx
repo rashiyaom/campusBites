@@ -16,30 +16,82 @@ export const CafeteriaProvider = ({ children }: { children: React.ReactNode }) =
   const [cafeterias, setCafeterias] = useState<Cafeteria[]>([]);
 
   useEffect(() => {
-    // Try to load from localStorage first
+    // Try to derive cafeterias from businesses first (single source of truth)
+    const savedBusinesses = localStorage.getItem('businesses');
+    if (savedBusinesses) {
+      try {
+        const businesses = JSON.parse(savedBusinesses);
+        // Convert all businesses to cafeteria-like shape (for backward compat)
+        const allCafeterias = businesses.map((b: any) => ({
+          id: b.id,
+          name: b.name,
+          slug: b.slug || b.name?.toLowerCase().replace(/\s+/g, '-') || b.id,
+          description: b.description,
+          image: b.image,
+          location: b.location,
+          rating: b.rating,
+          isOpen: b.isOpen,
+          openingHours: b.openingHours || { open: b.openTime || '08:00', close: b.closeTime || '22:00' },
+          categories: b.categories || [],
+          partnerId: b.partnerId,
+          businessType: b.businessType || b.type || 'food',
+        }));
+        setCafeterias(allCafeterias);
+        return;
+      } catch (error) {
+        console.error('Failed to load businesses for cafeterias:', error);
+      }
+    }
+
+    // Fallback: load from cafeterias key
     const savedCafeterias = localStorage.getItem('cafeterias');
     if (savedCafeterias) {
       try {
         setCafeterias(JSON.parse(savedCafeterias));
       } catch (error) {
         console.error('Failed to load cafeterias:', error);
-        // Fallback to mock data
         setCafeterias(MOCK_CAFETERIAS);
-        localStorage.setItem('cafeterias', JSON.stringify(MOCK_CAFETERIAS));
       }
     } else {
-      // First time - use mock data and save it
       setCafeterias(MOCK_CAFETERIAS);
-      localStorage.setItem('cafeterias', JSON.stringify(MOCK_CAFETERIAS));
     }
   }, []);
 
-  // Save to localStorage whenever cafeterias change
+  // Re-sync when storage changes (cross-tab) or businesses update (same tab)
   useEffect(() => {
-    if (cafeterias.length > 0) {
-      localStorage.setItem('cafeterias', JSON.stringify(cafeterias));
-    }
-  }, [cafeterias]);
+    const syncFromBusinesses = () => {
+      const savedBusinesses = localStorage.getItem('businesses');
+      if (savedBusinesses) {
+        try {
+          const businesses = JSON.parse(savedBusinesses);
+          const allCafeterias = businesses.map((b: any) => ({
+            id: b.id,
+            name: b.name,
+            slug: b.slug || b.id,
+            description: b.description,
+            image: b.image,
+            location: b.location,
+            rating: b.rating,
+            isOpen: b.isOpen,
+            openingHours: b.openingHours || { open: '08:00', close: '22:00' },
+            categories: b.categories || [],
+            partnerId: b.partnerId,
+            businessType: b.businessType || b.type || 'food',
+          }));
+          setCafeterias(allCafeterias);
+        } catch (error) {
+          console.error('Failed to sync cafeterias:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', syncFromBusinesses);
+    window.addEventListener('businesses-updated', syncFromBusinesses);
+    return () => {
+      window.removeEventListener('storage', syncFromBusinesses);
+      window.removeEventListener('businesses-updated', syncFromBusinesses);
+    };
+  }, []);
 
   const updateCafeteria = (id: string, updates: Partial<Cafeteria>) => {
     setCafeterias(prev =>

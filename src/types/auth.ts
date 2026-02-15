@@ -8,7 +8,9 @@ export interface User {
   name: string;
   role: UserRole;
   avatar?: string;
-  cafeteriaId?: string; // For partner users
+  cafeteriaId?: string; // For partner users (backward compat)
+  businessId?: string;  // Business this partner manages
+  businessType?: string; // Type of business
 }
 
 export interface LoginCredentials {

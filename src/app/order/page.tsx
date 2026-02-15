@@ -143,7 +143,7 @@ export default function CafeSelectionPage() {
           <Link href="/" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
             <Home size={20} className="dark:text-gray-400" />
           </Link>
-          <Link href="/stores" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+          <Link href="/order" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
             <Flame size={20} className="text-orange-500" />
           </Link>
           <button
@@ -381,7 +381,7 @@ export default function CafeSelectionPage() {
                   return (
                     <Link
                       key={business.id}
-                      href={`/stores`}
+                      href={`/order/${business.id}`}
                       style={{ animationDelay: `${index * 100}ms` }}
                       className="group relative bg-white dark:bg-gray-900 rounded-[2.5rem] overflow-hidden cursor-pointer shadow-xl hover:shadow-2xl hover:shadow-green-500/20 transition-all duration-500 transform hover:-translate-y-2 animate-slide-up border border-gray-100 dark:border-gray-800"
                     >
@@ -438,7 +438,7 @@ export default function CafeSelectionPage() {
 
                         {/* Quick Tags */}
                         <div className="mt-6 flex flex-wrap gap-2">
-                          {business.categories.slice(0, 3).map(cat => (
+                          {(business.categories || []).slice(0, 3).map(cat => (
                             <span 
                               key={cat} 
                               className="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-full text-xs font-bold uppercase tracking-wide"
@@ -446,7 +446,7 @@ export default function CafeSelectionPage() {
                               {cat}
                             </span>
                           ))}
-                          {business.categories.length > 3 && (
+                          {(business.categories || []).length > 3 && (
                             <span className="w-8 h-6 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-full text-gray-400 dark:text-gray-500 text-xs font-bold">
                               +{business.categories.length - 3}
                             </span>
@@ -490,7 +490,7 @@ export default function CafeSelectionPage() {
                   return (
                     <Link
                       key={business.id}
-                      href={`/stores`}
+                      href={`/order/${business.id}`}
                       style={{ animationDelay: `${index * 100}ms` }}
                       className="group relative bg-white dark:bg-gray-900 rounded-[2.5rem] overflow-hidden cursor-pointer shadow-xl hover:shadow-2xl hover:shadow-blue-500/20 transition-all duration-500 transform hover:-translate-y-2 animate-slide-up border border-gray-100 dark:border-gray-800"
                     >
@@ -547,7 +547,7 @@ export default function CafeSelectionPage() {
 
                         {/* Quick Tags */}
                         <div className="mt-6 flex flex-wrap gap-2">
-                          {business.categories.slice(0, 3).map(cat => (
+                          {(business.categories || []).slice(0, 3).map(cat => (
                             <span 
                               key={cat} 
                               className="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-full text-xs font-bold uppercase tracking-wide"
@@ -555,7 +555,7 @@ export default function CafeSelectionPage() {
                               {cat}
                             </span>
                           ))}
-                          {business.categories.length > 3 && (
+                          {(business.categories || []).length > 3 && (
                             <span className="w-8 h-6 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-full text-gray-400 dark:text-gray-500 text-xs font-bold">
                               +{business.categories.length - 3}
                             </span>

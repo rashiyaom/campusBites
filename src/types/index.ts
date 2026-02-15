@@ -25,7 +25,9 @@ export {
   getBusinessTypeLabel,
   getCategoriesForBusinessType,
   requiresInventoryTracking,
-  isLowStock
+  isLowStock,
+  getOrderStatusLabel,
+  getOrderStatusIcon
 } from './business';
 
 export interface User {
