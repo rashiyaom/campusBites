@@ -75,6 +75,9 @@ export interface Order {
   paymentMethod?: 'cash' | 'upi' | 'card' | 'wallet';
   paymentId?: string;
   paidAt?: Date;
+  // Platform fee charged on this order
+  platformFee?: number;
+  deliveryFee?: number;
   // Partner response
   partnerNote?: string; // Note from partner (approval/decline reason)
   approvedAt?: Date;

@@ -469,7 +469,20 @@ function CheckoutPageContent() {
 
   // Consistent pricing system across the app
   const subtotal = getCafeCartTotal(activeCafeId);
-  const serviceFee = 165; // Service Fee (₹165)
+  
+  // Platform fee: per-store fee set by admin (stored in localStorage)
+  const getPlatformFee = (cafeId: string): number => {
+    try {
+      const saved = localStorage.getItem('platformFees');
+      if (saved) {
+        const fees = JSON.parse(saved);
+        if (fees[cafeId] !== undefined) return fees[cafeId];
+      }
+    } catch {}
+    return 0; // Default: no platform fee until admin sets one
+  };
+  const platformFee = getPlatformFee(activeCafeId);
+  
   const freeDeliveryThreshold = 2075; // ₹2075 for free delivery
   const deliveryFee = deliveryMethod === 'dineIn' 
     ? 0 
@@ -485,7 +498,7 @@ function CheckoutPageContent() {
         )
     : 0;
   
-  const total = subtotal + serviceFee + deliveryFee - discount;
+  const total = subtotal + platformFee + deliveryFee - discount;
 
   const handlePlaceOrder = async () => {
     if (deliveryMethod === 'delivery' && !address.trim()) {
@@ -533,6 +546,8 @@ function CheckoutPageContent() {
         total: total,
         status: 'pending', // Order awaits partner approval
         paymentStatus: 'unpaid', // Payment will be done after approval
+        platformFee: platformFee,
+        deliveryFee: deliveryFee,
         deliveryType: deliveryMethod === 'dineIn' ? 'pickup' : deliveryMethod as 'delivery' | 'pickup',
         specialInstructions: instructions,
         estimatedTime: '15-20 mins',
@@ -877,10 +892,12 @@ function CheckoutPageContent() {
                       <span className="font-semibold">₹{subtotal.toFixed(0)}</span>
                     </div>
                     
-                    <div className="flex justify-between text-gray-600 dark:text-gray-400">
-                      <span>Service Fee</span>
-                      <span className="font-semibold">₹{serviceFee.toFixed(0)}</span>
-                    </div>
+                    {platformFee > 0 && (
+                      <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                        <span>Platform Fee</span>
+                        <span className="font-semibold">₹{platformFee.toFixed(0)}</span>
+                      </div>
+                    )}
 
                     <div className="flex justify-between text-gray-600 dark:text-gray-400">
                       <span>Delivery Fee</span>

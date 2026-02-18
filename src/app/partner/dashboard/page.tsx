@@ -162,7 +162,11 @@ const PartnerDashboard = () => {
     // Give AuthContext time to restore session from localStorage
     const timer = setTimeout(() => {
       setIsAuthChecking(false);
-      if (!isAuthenticated || user?.role !== 'partner') {
+      if (!isAuthenticated) {
+        router.push('/login');
+      } else if (user?.role === 'admin') {
+        router.push('/admin');
+      } else if (user?.role !== 'partner') {
         router.push('/login');
       }
     }, 100);

@@ -32,26 +32,54 @@ export const useRealtimeSync = (
   }, [storageKeys]);
 
   useEffect(() => {
+    // Store last known values to detect actual changes
+    const lastValues = new Map<string, string | null>();
+    
+    // Initialize last values
+    keysRef.current.forEach(key => {
+      lastValues.set(key, localStorage.getItem(key));
+    });
+
     // Handle cross-tab storage changes only
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key && keysRef.current.includes(e.key)) {
-        console.log(`[RealtimeSync] Detected change in ${e.key} from another tab`);
-        lastSyncRef.current = Date.now();
-        onSyncRef.current();
+        const lastValue = lastValues.get(e.key);
+        const newValue = e.newValue;
+        
+        // Only trigger if value actually changed
+        if (lastValue !== newValue) {
+          console.log(`[RealtimeSync] Detected change in ${e.key} from another tab`);
+          lastValues.set(e.key, newValue);
+          lastSyncRef.current = Date.now();
+          onSyncRef.current();
+        }
       }
     };
 
     // Listen for storage events (fires when localStorage changes in another tab)
     window.addEventListener('storage', handleStorageChange);
 
-    // Polling as backup - but with throttling to avoid excessive calls
+    // Polling as backup - check if values actually changed
     const interval = setInterval(() => {
-      // Only poll if no recent sync happened
-      if (Date.now() - lastSyncRef.current > 1500) {
-        onSyncRef.current();
+      let hasChanges = false;
+      
+      keysRef.current.forEach(key => {
+        const currentValue = localStorage.getItem(key);
+        const lastValue = lastValues.get(key);
+        
+        if (currentValue !== lastValue) {
+          console.log(`[RealtimeSync] Polling detected change in ${key}`);
+          lastValues.set(key, currentValue);
+          hasChanges = true;
+        }
+      });
+      
+      // Only sync if there were actual changes
+      if (hasChanges && Date.now() - lastSyncRef.current > 1500) {
         lastSyncRef.current = Date.now();
+        onSyncRef.current();
       }
-    }, 2000);
+    }, 3000); // Increased to 3 seconds to reduce overhead
 
     console.log(`[RealtimeSync] Started monitoring: ${storageKeys.join(', ')}`);
 

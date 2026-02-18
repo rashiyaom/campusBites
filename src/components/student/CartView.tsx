@@ -58,7 +58,20 @@ export const CartView: React.FC<CartViewProps> = ({ onClose, cafeteriaId = null 
     if (!cart) return null;
 
     const subtotal = getCafeCartTotal(cafeteriaId);
-    const serviceFee = 165; // Service Fee (₹165)
+    
+    // Platform fee: per-store fee set by admin
+    const getPlatformFee = (cafeId: string): number => {
+      try {
+        const saved = localStorage.getItem('platformFees');
+        if (saved) {
+          const fees = JSON.parse(saved);
+          if (fees[cafeId] !== undefined) return fees[cafeId];
+        }
+      } catch {}
+      return 0;
+    };
+    const platformFee = getPlatformFee(cafeteriaId);
+    
     const freeDeliveryThreshold = 2075; // ₹2075 for free delivery
     const deliveryFee = subtotal >= freeDeliveryThreshold ? 0 : 207; // ₹207
     
@@ -75,7 +88,7 @@ export const CartView: React.FC<CartViewProps> = ({ onClose, cafeteriaId = null 
       }
     }
     
-    const total = subtotal + serviceFee + deliveryFee - discount;
+    const total = subtotal + platformFee + deliveryFee - discount;
     const progress = Math.min((subtotal / freeDeliveryThreshold) * 100, 100);
     const remaining = Math.max(freeDeliveryThreshold - subtotal, 0);
 
@@ -183,10 +196,12 @@ export const CartView: React.FC<CartViewProps> = ({ onClose, cafeteriaId = null 
                 <span>Subtotal ({cart.items.reduce((sum, item) => sum + item.quantity, 0)} items)</span>
                 <span>₹{subtotal.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-gray-600 dark:text-gray-400 text-sm">
-                <span>Service Fee</span>
-                <span>₹{serviceFee.toFixed(2)}</span>
-              </div>
+              {platformFee > 0 && (
+                <div className="flex justify-between text-gray-600 dark:text-gray-400 text-sm">
+                  <span>Platform Fee</span>
+                  <span>₹{platformFee.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-gray-600 dark:text-gray-400 text-sm">
                 <span>Delivery Fee</span>
                 <span className={deliveryFee === 0 ? "text-green-600 dark:text-green-400 font-bold" : ""}>

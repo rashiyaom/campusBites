@@ -249,7 +249,12 @@ export default function LoginPage() {
       await login({ email: formData.email, password: formData.password });
       setSubmitStatus('success');
       setTimeout(() => {
-        router.push('/partner/dashboard');
+        // Check if admin login — redirect to admin dashboard
+        if (formData.email === 'superadmin@campusbite.com') {
+          router.push('/admin');
+        } else {
+          router.push('/partner/dashboard');
+        }
       }, 1500);
     } catch (err) {
       setSubmitStatus('idle');
@@ -392,84 +397,170 @@ export default function LoginPage() {
 
                 {/* Demo Accounts Info */}
                 <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 -mt-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Demo Accounts</p>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Demo Accounts - Click to Login</p>
                   <div className="space-y-1 text-xs max-h-40 overflow-y-auto hide-scrollbar">
+                    {/* Super Admin */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, email: 'superadmin@campusbite.com', password: 'admin@123' });
+                        setTimeout(() => document.querySelector('form')?.requestSubmit(), 100);
+                      }}
+                      className="w-full flex justify-between items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-red-50 transition-colors group border border-red-100 bg-red-50/50 mb-1"
+                    >
+                      <span className="text-gray-600 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-600 group-hover:scale-150 transition-transform animate-pulse"></span>
+                        <span className="group-hover:text-red-600 group-hover:font-semibold font-semibold text-red-700">⭐ superadmin@campusbite.com</span>
+                      </span>
+                      <span className="font-mono text-red-400 group-hover:text-red-500">admin@123</span>
+                    </button>
                     {/* Food */}
-                    <div className="flex justify-between items-center gap-2">
-                      <span className="text-gray-600 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
-                        admin@thegrill.com
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, email: 'admin@thegrill.com', password: 'demo123' });
+                        setTimeout(() => document.querySelector('form')?.requestSubmit(), 100);
+                      }}
+                      className="w-full flex justify-between items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-orange-50 transition-colors group"
+                    >
+                      <span className="text-gray-600 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-500 group-hover:scale-150 transition-transform"></span>
+                        <span className="group-hover:text-orange-600 group-hover:font-semibold">admin@thegrill.com</span>
                       </span>
-                      <span className="font-mono text-gray-400">demo123</span>
-                    </div>
+                      <span className="font-mono text-gray-400 group-hover:text-orange-500">demo123</span>
+                    </button>
                     {/* Groceries */}
-                    <div className="flex justify-between items-center gap-2">
-                      <span className="text-gray-600 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                        admin@campusmart.com
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, email: 'admin@campusmart.com', password: 'demo123' });
+                        setTimeout(() => document.querySelector('form')?.requestSubmit(), 100);
+                      }}
+                      className="w-full flex justify-between items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-green-50 transition-colors group"
+                    >
+                      <span className="text-gray-600 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 group-hover:scale-150 transition-transform"></span>
+                        <span className="group-hover:text-green-600 group-hover:font-semibold">admin@campusmart.com</span>
                       </span>
-                      <span className="font-mono text-gray-400">demo123</span>
-                    </div>
-                    <div className="flex justify-between items-center gap-2">
-                      <span className="text-gray-600 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                        admin@freshbazaar.com
+                      <span className="font-mono text-gray-400 group-hover:text-green-500">demo123</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, email: 'admin@freshbazaar.com', password: 'demo123' });
+                        setTimeout(() => document.querySelector('form')?.requestSubmit(), 100);
+                      }}
+                      className="w-full flex justify-between items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-green-50 transition-colors group"
+                    >
+                      <span className="text-gray-600 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 group-hover:scale-150 transition-transform"></span>
+                        <span className="group-hover:text-green-600 group-hover:font-semibold">admin@freshbazaar.com</span>
                       </span>
-                      <span className="font-mono text-gray-400">demo123</span>
-                    </div>
-                    <div className="flex justify-between items-center gap-2">
-                      <span className="text-gray-600 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                        admin@quickstop.com
+                      <span className="font-mono text-gray-400 group-hover:text-green-500">demo123</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, email: 'admin@quickstop.com', password: 'demo123' });
+                        setTimeout(() => document.querySelector('form')?.requestSubmit(), 100);
+                      }}
+                      className="w-full flex justify-between items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-green-50 transition-colors group"
+                    >
+                      <span className="text-gray-600 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 group-hover:scale-150 transition-transform"></span>
+                        <span className="group-hover:text-green-600 group-hover:font-semibold">admin@quickstop.com</span>
                       </span>
-                      <span className="font-mono text-gray-400">demo123</span>
-                    </div>
-                    <div className="flex justify-between items-center gap-2">
-                      <span className="text-gray-600 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                        admin@organiccorner.com
+                      <span className="font-mono text-gray-400 group-hover:text-green-500">demo123</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, email: 'admin@organiccorner.com', password: 'demo123' });
+                        setTimeout(() => document.querySelector('form')?.requestSubmit(), 100);
+                      }}
+                      className="w-full flex justify-between items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-green-50 transition-colors group"
+                    >
+                      <span className="text-gray-600 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 group-hover:scale-150 transition-transform"></span>
+                        <span className="group-hover:text-green-600 group-hover:font-semibold">admin@organiccorner.com</span>
                       </span>
-                      <span className="font-mono text-gray-400">demo123</span>
-                    </div>
+                      <span className="font-mono text-gray-400 group-hover:text-green-500">demo123</span>
+                    </button>
                     {/* Stationery */}
-                    <div className="flex justify-between items-center gap-2">
-                      <span className="text-gray-600 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                        admin@penparadise.com
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, email: 'admin@penparadise.com', password: 'demo123' });
+                        setTimeout(() => document.querySelector('form')?.requestSubmit(), 100);
+                      }}
+                      className="w-full flex justify-between items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-blue-50 transition-colors group"
+                    >
+                      <span className="text-gray-600 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 group-hover:scale-150 transition-transform"></span>
+                        <span className="group-hover:text-blue-600 group-hover:font-semibold">admin@penparadise.com</span>
                       </span>
-                      <span className="font-mono text-gray-400">demo123</span>
-                    </div>
+                      <span className="font-mono text-gray-400 group-hover:text-blue-500">demo123</span>
+                    </button>
                     {/* Essentials */}
-                    <div className="flex justify-between items-center gap-2">
-                      <span className="text-gray-600 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-                        admin@dailyneeds.com
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, email: 'admin@dailyneeds.com', password: 'demo123' });
+                        setTimeout(() => document.querySelector('form')?.requestSubmit(), 100);
+                      }}
+                      className="w-full flex justify-between items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-purple-50 transition-colors group"
+                    >
+                      <span className="text-gray-600 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500 group-hover:scale-150 transition-transform"></span>
+                        <span className="group-hover:text-purple-600 group-hover:font-semibold">admin@dailyneeds.com</span>
                       </span>
-                      <span className="font-mono text-gray-400">demo123</span>
-                    </div>
-                    <div className="flex justify-between items-center gap-2">
-                      <span className="text-gray-600 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-                        admin@campuscare.com
+                      <span className="font-mono text-gray-400 group-hover:text-purple-500">demo123</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, email: 'admin@campuscare.com', password: 'demo123' });
+                        setTimeout(() => document.querySelector('form')?.requestSubmit(), 100);
+                      }}
+                      className="w-full flex justify-between items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-purple-50 transition-colors group"
+                    >
+                      <span className="text-gray-600 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500 group-hover:scale-150 transition-transform"></span>
+                        <span className="group-hover:text-purple-600 group-hover:font-semibold">admin@campuscare.com</span>
                       </span>
-                      <span className="font-mono text-gray-400">demo123</span>
-                    </div>
-                    <div className="flex justify-between items-center gap-2">
-                      <span className="text-gray-600 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-                        admin@hygieneplus.com
+                      <span className="font-mono text-gray-400 group-hover:text-purple-500">demo123</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, email: 'admin@hygieneplus.com', password: 'demo123' });
+                        setTimeout(() => document.querySelector('form')?.requestSubmit(), 100);
+                      }}
+                      className="w-full flex justify-between items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-purple-50 transition-colors group"
+                    >
+                      <span className="text-gray-600 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500 group-hover:scale-150 transition-transform"></span>
+                        <span className="group-hover:text-purple-600 group-hover:font-semibold">admin@hygieneplus.com</span>
                       </span>
-                      <span className="font-mono text-gray-400">demo123</span>
-                    </div>
-                    <div className="flex justify-between items-center gap-2">
-                      <span className="text-gray-600 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-                        admin@studentstore.com
+                      <span className="font-mono text-gray-400 group-hover:text-purple-500">demo123</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, email: 'admin@studentstore.com', password: 'demo123' });
+                        setTimeout(() => document.querySelector('form')?.requestSubmit(), 100);
+                      }}
+                      className="w-full flex justify-between items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-purple-50 transition-colors group"
+                    >
+                      <span className="text-gray-600 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500 group-hover:scale-150 transition-transform"></span>
+                        <span className="group-hover:text-purple-600 group-hover:font-semibold">admin@studentstore.com</span>
                       </span>
-                      <span className="font-mono text-gray-400">demo123</span>
-                    </div>
+                      <span className="font-mono text-gray-400 group-hover:text-purple-500">demo123</span>
+                    </button>
                   </div>
-                  <div className="mt-2 pt-2 border-t border-gray-200 grid grid-cols-2 gap-1 text-[9px] text-gray-400">
+                  <div className="mt-2 pt-2 border-t border-gray-200 grid grid-cols-3 gap-1 text-[9px] text-gray-400">
+                    <span>⭐ 1 Admin</span>
                     <span>🍔 1 Food</span>
                     <span>🛒 4 Grocery</span>
                     <span>✏️ 1 Stationery</span>

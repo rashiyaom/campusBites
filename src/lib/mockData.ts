@@ -44,11 +44,33 @@ export const MOCK_CAFETERIAS: Cafeteria[] = [
   }
 ];
 
-// Mock partner credentials
+// Admin account
+export const ADMIN_ACCOUNT = {
+  email: 'superadmin@campusbite.com',
+  password: 'admin@123',
+  name: 'Super Admin',
+  role: 'admin' as const,
+  id: 'admin-001',
+};
+
+// Mock partner credentials — IDs match PARTNER_ACCOUNTS in seedBusinessData.ts
 export const MOCK_PARTNERS = [
-  { email: 'admin@thegrill.com', password: 'demo123', cafeteriaId: 'cafe-1', name: 'The Grill Admin' },
-  { email: 'admin@sushicorner.com', password: 'demo123', cafeteriaId: 'cafe-2', name: 'Sushi Corner Admin' },
-  { email: 'admin@coffeeco.com', password: 'demo123', cafeteriaId: 'cafe-3', name: 'Coffee & Co Admin' }
+  // Food (3)
+  { id: 'partner-food-1', email: 'admin@thegrill.com', password: 'demo123', cafeteriaId: 'cafe-1', businessId: 'cafe-1', businessType: 'food' as const, name: 'The Grill Admin' },
+  { id: 'partner-food-2', email: 'admin@sushicorner.com', password: 'demo123', cafeteriaId: 'cafe-2', businessId: 'cafe-2', businessType: 'food' as const, name: 'Sushi Corner Admin' },
+  { id: 'partner-food-3', email: 'admin@coffeeco.com', password: 'demo123', cafeteriaId: 'cafe-3', businessId: 'cafe-3', businessType: 'food' as const, name: 'Coffee & Co Admin' },
+  // Groceries (4)
+  { id: 'partner-grocery-1', email: 'admin@campusmart.com', password: 'demo123', cafeteriaId: 'grocery-1', businessId: 'grocery-1', businessType: 'grocery' as const, name: 'Campus Mart Admin' },
+  { id: 'partner-grocery-2', email: 'admin@freshbazaar.com', password: 'demo123', cafeteriaId: 'grocery-2', businessId: 'grocery-2', businessType: 'grocery' as const, name: 'Fresh Bazaar Admin' },
+  { id: 'partner-grocery-3', email: 'admin@quickstop.com', password: 'demo123', cafeteriaId: 'grocery-3', businessId: 'grocery-3', businessType: 'grocery' as const, name: 'Quick Stop Admin' },
+  { id: 'partner-grocery-4', email: 'admin@organiccorner.com', password: 'demo123', cafeteriaId: 'grocery-4', businessId: 'grocery-4', businessType: 'grocery' as const, name: 'Organic Corner Admin' },
+  // Stationery (1)
+  { id: 'partner-stationery-1', email: 'admin@penparadise.com', password: 'demo123', cafeteriaId: 'stationery-1', businessId: 'stationery-1', businessType: 'stationery' as const, name: 'Pen Paradise Admin' },
+  // Essentials (4)
+  { id: 'partner-essentials-1', email: 'admin@dailyneeds.com', password: 'demo123', cafeteriaId: 'essentials-1', businessId: 'essentials-1', businessType: 'daily_essentials' as const, name: 'Daily Needs Admin' },
+  { id: 'partner-essentials-2', email: 'admin@campuscare.com', password: 'demo123', cafeteriaId: 'essentials-2', businessId: 'essentials-2', businessType: 'daily_essentials' as const, name: 'Campus Care Admin' },
+  { id: 'partner-essentials-3', email: 'admin@hygieneplus.com', password: 'demo123', cafeteriaId: 'essentials-3', businessId: 'essentials-3', businessType: 'daily_essentials' as const, name: 'Hygiene Plus Admin' },
+  { id: 'partner-essentials-4', email: 'admin@studentstore.com', password: 'demo123', cafeteriaId: 'essentials-4', businessId: 'essentials-4', businessType: 'daily_essentials' as const, name: 'Student Store Admin' }
 ];
 
 export const MOCK_MENU_ITEMS: MenuItem[] = [

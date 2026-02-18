@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { User, LoginCredentials, AuthState } from '@/types/auth';
-import { MOCK_PARTNERS, MOCK_CAFETERIAS } from '@/lib/mockData';
+import { MOCK_PARTNERS, MOCK_CAFETERIAS, ADMIN_ACCOUNT } from '@/lib/mockData';
+import { PARTNER_ACCOUNTS } from '@/lib/seedBusinessData';
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
@@ -44,6 +45,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000));
 
+    // Check admin credentials first
+    const adminAccount = ADMIN_ACCOUNT;
+    if (credentials.email === adminAccount.email && credentials.password === adminAccount.password) {
+      const user: User = {
+        id: adminAccount.id,
+        email: adminAccount.email,
+        name: adminAccount.name,
+        role: 'admin',
+      };
+
+      setAuthState({
+        user,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null
+      });
+
+      localStorage.setItem('partnerUser', JSON.stringify(user));
+      return;
+    }
+
     // Check localStorage partners first (seeded data)
     let partner = null;
     const savedPartners = localStorage.getItem('partners');
@@ -61,6 +83,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Fallback to MOCK_PARTNERS
     if (!partner) {
       partner = MOCK_PARTNERS.find(
+        p => p.email === credentials.email && p.password === credentials.password
+      );
+    }
+
+    // Final fallback to PARTNER_ACCOUNTS from seedBusinessData
+    if (!partner) {
+      partner = PARTNER_ACCOUNTS.find(
         p => p.email === credentials.email && p.password === credentials.password
       );
     }
